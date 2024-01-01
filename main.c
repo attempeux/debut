@@ -1,9 +1,9 @@
-#include "debut.h"
+#include "lexer.h"
 
 static void print_usage (const char*);
 static void read_file (FileContent*, const char*);
 
-static void get_info_about (Spread*);
+static void build_from_this (Spread*);
 
 int main (int argc, char** argv)
 {
@@ -24,7 +24,8 @@ int main (int argc, char** argv)
 
     read_file(&spread.src, spread.filename_r);
     if (!spread.ui_mode) {
-        get_info_about(&spread);
+        build_from_this(&spread);
+        lexer_cell_by_cell(&spread);
     }
 
     return EXIT_SUCCESS;
@@ -69,7 +70,7 @@ static void read_file (FileContent* src, const char* flname)
  * is used, this is needed because the size of the
  * table could not be fixed.
  * */
-static void get_info_about (Spread* spread)
+static void build_from_this (Spread* spread)
 {
     const size_t len = spread->src.len;
     for (size_t i = 0; i < len; i++) {

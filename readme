@@ -6,8 +6,8 @@ debut ---
     Mode 1: This mode only parses and solves the table given, it means you gotta have a file
     already made to be solved by Debut, the condition is that the table must look like this:
 
-    | ... | ...
-    | ... | ... | ...
+    ... | ... |
+    ... | ... | ... |
 
     It means every '|' makes a new cell, this mode will write the result in the standard output
     unless the -o <filename> was used, in that case the output will be written on <filename>.

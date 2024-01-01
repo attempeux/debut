@@ -60,7 +60,7 @@ typedef struct TableInfo {
  * note: this is only used when -p argument is used.
  * */
 typedef struct RowOffsets {
-    uint16_t *marks, nth_mark;
+    uint16_t *marks, nth_mark, nth_cell;
 } RowOffsets;
 
 typedef struct Spread {
