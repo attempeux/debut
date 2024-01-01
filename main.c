@@ -1,7 +1,9 @@
 #include "debut.h"
 
 static void print_usage (const char*);
-static void read_file (Source*, const char*);
+static void read_file (FileContent*, const char*);
+
+static void get_info_about (Spread*);
 
 int main (int argc, char** argv)
 {
@@ -21,12 +23,9 @@ int main (int argc, char** argv)
     }
 
     read_file(&spread.src, spread.filename_r);
-    if (spread.ui_mode) {
-        fprintf(stderr, "debut: ups: mode no supported yet.\n");
-        exit(EXIT_SUCCESS);
+    if (!spread.ui_mode) {
+        get_info_about(&spread);
     }
-
-    printf("%s\n", spread.src.src);
 
     return EXIT_SUCCESS;
 }
@@ -41,7 +40,7 @@ static void print_usage (const char* s)
     exit(EXIT_SUCCESS);
 }
 
-static void read_file (Source* src, const char* flname)
+static void read_file (FileContent* src, const char* flname)
 {
     FILE* file = fopen(flname, "r");
     if (!file) {
@@ -63,5 +62,25 @@ static void read_file (Source* src, const char* flname)
 
     src->src[src->len - 1] = 0;
     fclose(file);
+}
+
+/* This function is used to know the number of rows
+ * and cells made in a table when the -p arguement
+ * is used, this is needed because the size of the
+ * table could not be fixed.
+ * */
+static void get_info_about (Spread* spread)
+{
+    const size_t len = spread->src.len;
+    for (size_t i = 0; i < len; i++) {
+        const char a = spread->src.src[i];
+
+        if (a == '\n') spread->info.max_rows++;
+        else if (a == '|') spread->info.max_cells++;
+    }
+
+    spread->spread        = (Cell*) calloc(spread->info.max_cells, sizeof(Cell));
+    spread->offsets.marks = (uint16_t*) calloc(spread->info.max_rows, sizeof(uint16_t));
+    assert(spread->spread && spread->offsets.marks && "no memory enough");
 }
 
