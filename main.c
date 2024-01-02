@@ -1,7 +1,6 @@
 #include "lexer.h"
 
 #define IS_IT_BCKSP(c)  ((c == KEY_BACKSPACE) || (c == 127) || (c == '\b'))
-#define IS_IT_ENTER(c)  ((c == KEY_ENTER) || (c == '\r') || (c == '\n'))
 
 static void init_grid (void);
 static void print_labels (Grid*);
@@ -16,7 +15,7 @@ static void check_bounds (Grid*, const uint32_t);
 static void update_formula (const Grid*, const Cell*, const uint32_t);
 
 static Cell* update_cell (const Spread*, const Grid*);
-static void run_cell (const Spread*, const uint32_t, Cell*);
+static void run_cell (const Spread*, Cell*);
 
 int main (void)
 {
@@ -70,7 +69,7 @@ static void print_labels (Grid* grid)
     mvprintw(0, 0, "CC: A0%-*.s", padd, " ");
     mvprintw(1, 0, "FM: %-*.s", padd, " ");
     mvprintw(2, 0, "%-*.s", grid->nXbytes, " ");
-    mvprintw(grid->nYbytes - 1, 0, "ER: %-*.s", padd, " ");
+    mvprintw(grid->nYbytes - 1, 0, "ER: :)%-*.s", padd, " ");
 }
 
 static void print_coords (Grid* grid)
@@ -128,24 +127,22 @@ static void start_moving (Spread* spread)
     keypad(stdscr, TRUE);
     curs_set(2);
 
-    /* FM: <bytes_to_print_left>xxx|
-     *     4th byte             ` Stops when theres 3 bytes left
+    /* FM: <Bsleft>xxx|
+     *     4th byte  ` Stops when theres 3 bytes left
      *      ` Starts printing here
      * */
-    const uint32_t bytes_to_print_left = grid->nXbytes - 7;
+    const uint32_t Bsleft = grid->nXbytes - 7;
 
     Cell* cc   = &spread->cells[0];
     uint32_t K = 0;
 
     while ((K = getch()) != KEY_F(1)) {
 
-        if (IS_IT_ENTER(K))
-            run_cell(spread, bytes_to_print_left, cc);
-
-        else if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
-            run_cell(spread, bytes_to_print_left, cc);
+        if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
+            run_cell(spread, cc);
             check_bounds(grid, K);
             cc = update_cell(spread, grid);
+            mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", Bsleft, Bsleft, (cc->type == cell_is_errr) ? cc->as_error : ":)");
         }
 
         else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGHT)) {
@@ -158,7 +155,7 @@ static void start_moving (Spread* spread)
             cc->modified = true;
         }
 
-        update_formula(grid, cc, bytes_to_print_left);
+        update_formula(grid, cc, Bsleft);
     }
 }
 
@@ -186,7 +183,7 @@ static Cell* update_cell (const Spread* spread, const Grid* grid)
     return &spread->cells[grid->c_row * grid->ncolumns + grid->c_col];
 }
 
-static void run_cell (const Spread* spread, const uint32_t left, Cell* cc)
+static void run_cell (const Spread* spread, Cell* cc)
 {
     static const uint32_t printwidth = DEBUT_CELL_WIDTH - 1;
 
@@ -195,5 +192,4 @@ static void run_cell (const Spread* spread, const uint32_t left, Cell* cc)
 
     lexer_lex(spread, cc);
     attron(COLOR_PAIR(1));
-    mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", left, left, cc->as_error);
 }

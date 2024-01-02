@@ -1,10 +1,14 @@
 #include "lexer.h"
+
 #define MUST_DEFINE_TOKEN(a)    ((a == token_is_numb) || (a == token_is_word) || (a == token_is_refc))
+
+#define ERROR_UNKNOWN_TOKEN     "unknown token; cannot proceed."
 
 static TokenType find_type_of (const char, const char);
 static uint16_t define_token (const char*, uint16_t*, const TokenType);
 
 static void define_function (const char*, const uint16_t, Token*);
+static void set_error_on_cc (Cell*, char*);
 
 void lexer_lex (const Spread* spread, Cell* cc)
 {
@@ -28,6 +32,11 @@ void lexer_lex (const Spread* spread, Cell* cc)
         else if (token.type == token_is_func) {
             define_function(cc->data + i, cc->nth_ch - i, &token);
             i += token.len - 1;
+        }
+
+        if (token.type == token_is_unkn) {
+            set_error_on_cc(cc, ERROR_UNKNOWN_TOKEN);
+            return;
         }
 
         fprintf(stderr, "token: <%.*s %d>\n", token.len, token.data, token.len);
@@ -96,7 +105,7 @@ static void define_function (const char* src, const uint16_t left, Token* t)
 
     for (uint16_t i = 0; i < nfuncs; i++) {
         const SpreadFunction *fx = &functions[i];
-        if ((left > fx->len) && !strncmp(src, fx->name, fx->len)) {
+        if ((left >= fx->len) && !strncmp(src, fx->name, fx->len)) {
             t->len  = fx->len;
             t->type = fx->token;
             return;
@@ -106,3 +115,8 @@ static void define_function (const char* src, const uint16_t left, Token* t)
     t->type = token_is_unkn;
 }
 
+static void set_error_on_cc (Cell* cc, char* err)
+{
+    cc->as_error = err;
+    cc->type     = cell_is_errr;
+}
