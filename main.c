@@ -6,7 +6,10 @@ static void print_labels (Grid*);
 static void print_coords (Grid*);
 static const uint16_t count_digits (uint32_t);
 
-static void get_column_name (char*, uint32_t);
+static void get_column_name (char*, const uint32_t);
+static void start_moving (Spread*);
+
+static void check_bounds (Grid*, const uint32_t);
 
 int main (void)
 {
@@ -17,6 +20,7 @@ int main (void)
     print_labels(&spread.grid);
     print_coords(&spread.grid);
 
+    start_moving(&spread);
     getch();
     endwin();
     return 0;
@@ -36,7 +40,6 @@ static void init_grid (void)
     init_pair(1, COLOR_BLACK, COLOR_MAGENTA);
     init_pair(2, COLOR_MAGENTA, COLOR_BLACK);
 
-    curs_set(0);
     attron(COLOR_PAIR(1));
 }
 
@@ -92,7 +95,7 @@ static uint16_t count_digits (uint32_t n)
     return a;
 }
 
-static void get_column_name (char* name, uint32_t at)
+static void get_column_name (char* name, const uint32_t at)
 {
     if (at < 26) {
         name[0] = 'A' + at;
@@ -104,3 +107,33 @@ static void get_column_name (char* name, uint32_t at)
     name[0] = nth_time + 'A' - 1;
     name[1] = 'A' + (at - 26 * nth_time);
 }
+
+static void start_moving (Spread* spread)
+{
+    Grid* grid = &spread->grid;
+    move(4, grid->left_padding);
+
+    keypad(stdscr, TRUE);
+    curs_set(2);
+
+    uint32_t K = 0;
+    while ((K = getch()) != KEY_F(1)) {
+
+        if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
+            check_bounds(grid, K);
+        }
+
+    }
+}
+
+static void check_bounds (Grid* grid, const uint32_t K)
+{
+    if ((K == KEY_UP) && (grid->c_row))   grid->c_row--;
+    else if ((K == KEY_LEFT) && (grid->c_col)) grid->c_col--;
+
+    else if ((K == KEY_DOWN) && (grid->c_row < grid->nrows - 1)) grid->c_row++;
+    else if ((K == KEY_RIGHT) && (grid->c_col < grid->ncolumns - 1)) grid->c_col++;
+
+    move(5 + grid->c_row - 1, grid->left_padding + DEBUT_CELL_WIDTH * grid->c_col);
+}
+

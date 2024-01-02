@@ -14,6 +14,7 @@ typedef struct Grid {
     uint32_t nXbytes, nYbytes;
     uint32_t ncolumns, nrows;
     uint32_t left_padding;
+    uint32_t c_row, c_col;
 } Grid;
 
 typedef struct Spread {
