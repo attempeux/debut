@@ -1,6 +1,7 @@
 #include "debut.h"
 
 #define IS_IT_BCKSP(c)  ((c == KEY_BACKSPACE) || (c == 127) || (c == '\b'))
+#define IS_IT_ENTER(c)  ((c == KEY_ENTER) || (c == '\r') || (c == '\n'))
 
 static void init_grid (void);
 static void print_labels (Grid*);
@@ -15,6 +16,7 @@ static void check_bounds (Grid*, const uint32_t);
 static void update_formula (const Grid*, const Cell*, const uint32_t);
 
 static Cell* update_cell (const Spread*, const Grid*);
+static void run_cell (const Spread*, const uint32_t, Cell*);
 
 int main (void)
 {
@@ -58,7 +60,9 @@ static void print_labels (Grid* grid)
      * FM: <content of the cell>
      * < COMMAND LINE >             -> This is all white space
      *                                 until a command is excuted.
-     * ...
+     * ...   A    B
+     * 0    ...  ...
+     * 1    ...  ...
      * ER: <error messages>
      * */
     const uint32_t padd = grid->nXbytes - 4;
@@ -88,7 +92,7 @@ static void print_coords (Grid* grid)
 
     for (i = 0; i < grid->ncolumns; i++) {
         get_column_name(columname, i);
-        printw("      %c%c     .", columname[0], columname[1]);
+        printw("      %c%c      ", columname[0], columname[1]);
     }
 }
 
@@ -134,9 +138,14 @@ static void start_moving (Spread* spread)
     uint32_t K = 0;
 
     while ((K = getch()) != KEY_F(1)) {
-        if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
+
+        if (IS_IT_ENTER(K))
+            run_cell(spread, bytes_to_print_left, cc);
+
+        else if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
+            run_cell(spread, bytes_to_print_left, cc);
             check_bounds(grid, K);
-            update_cell(spread, grid);
+            cc = update_cell(spread, grid);
         }
 
         else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGHT))
@@ -166,9 +175,20 @@ static void update_formula (const Grid* grid, const Cell* cc, const uint32_t lef
 
 static Cell* update_cell (const Spread* spread, const Grid* grid)
 {
-    char colname[2];
+    char colname[3] = {0};
     get_column_name(colname, grid->c_col);
 
     mvprintw(DEBUT_WRT_CC_AT, "%s%d ", colname, grid->c_row);
     return &spread->cells[grid->c_row * grid->ncolumns + grid->c_col];
+}
+
+static void run_cell (const Spread* spread, const uint32_t left, Cell* cc)
+{
+    static const uint32_t printwidth = DEBUT_CELL_WIDTH - 1;
+
+    attron(COLOR_PAIR(2));
+    printw("%-*.*s", printwidth, printwidth, cc->data);
+
+    attron(COLOR_PAIR(1));
+    mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", left, left, cc->data);
 }
