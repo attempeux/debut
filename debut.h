@@ -9,7 +9,7 @@
 #include <ncurses.h>
 #include <stdbool.h>
 
-#define DEBUT_CELL_WIDTH        14
+#define DEBUT_CELL_WIDTH        10
 #define DEBUT_CELL_LENGHT       512
 #define DEBUT_CELL_TOKEN_CAP    64
 
@@ -17,8 +17,34 @@
 #define DEBUT_WRT_CC_AT         0, 4
 
 typedef enum TokenType {
-    token_is_number,
-    token_is_unknown,
+    token_is_unkn = 0,
+    token_is_word = 1,
+    token_is_numb = 2,
+    token_is_sqrt = 3,
+    token_is_coss = 4,
+    token_is_sinn = 5,
+    token_is_acos = 6,
+    token_is_asin = 7,
+    token_is_atan = 8,
+    token_is_minn = 9,
+    token_is_maxx = 10,
+    token_is_eulr = 11,
+    token_is_pi   = 12,
+
+    token_is_func = '@',
+    token_is_refc = '&',
+    token_is_cmma = ',',
+    token_is_mins = '-',
+    token_is_plus = '+',
+    token_is_tims = '*',
+    token_is_dvsn = '/',
+    token_is_modd = '%',
+    token_is_dolr = '$',
+    token_is_qust = '?',
+    token_is_lfpr = '(',
+    token_is_ripr = ')',
+    token_is_lfbr = '{',
+    token_is_ribr = '}',
 } TokenType;
 
 typedef enum CellType {
@@ -36,9 +62,10 @@ typedef struct Token {
 
 typedef struct Cell {
     Token tokens[DEBUT_CELL_TOKEN_CAP];
-    char data[DEBUT_CELL_LENGHT];
+    char data[DEBUT_CELL_LENGHT], *as_error;
     uint16_t nth_token, nth_ch;
     CellType type;
+    bool modified;
 } Cell;
 
 typedef struct Grid {

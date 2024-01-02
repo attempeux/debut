@@ -1,4 +1,4 @@
-#include "debut.h"
+#include "lexer.h"
 
 #define IS_IT_BCKSP(c)  ((c == KEY_BACKSPACE) || (c == 127) || (c == '\b'))
 #define IS_IT_ENTER(c)  ((c == KEY_ENTER) || (c == '\r') || (c == '\n'))
@@ -7,7 +7,7 @@ static void init_grid (void);
 static void print_labels (Grid*);
 
 static void print_coords (Grid*);
-static const uint16_t count_digits (uint32_t);
+static uint16_t count_digits (uint32_t);
 
 static void get_column_name (char*, const uint32_t);
 static void start_moving (Spread*);
@@ -92,7 +92,7 @@ static void print_coords (Grid* grid)
 
     for (i = 0; i < grid->ncolumns; i++) {
         get_column_name(columname, i);
-        printw("      %c%c      ", columname[0], columname[1]);
+        printw("    %c%c    ", columname[0], columname[1]);
     }
 }
 
@@ -148,11 +148,15 @@ static void start_moving (Spread* spread)
             cc = update_cell(spread, grid);
         }
 
-        else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGHT))
+        else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGHT)) {
             cc->data[cc->nth_ch++] = K;
+            cc->modified = true;
+        }
 
-        else if (IS_IT_BCKSP(K) && cc->nth_ch)
+        else if (IS_IT_BCKSP(K) && cc->nth_ch) {
             cc->data[--cc->nth_ch] = 0;
+            cc->modified = true;
+        }
 
         update_formula(grid, cc, bytes_to_print_left);
     }
@@ -189,6 +193,7 @@ static void run_cell (const Spread* spread, const uint32_t left, Cell* cc)
     attron(COLOR_PAIR(2));
     printw("%-*.*s", printwidth, printwidth, cc->data);
 
+    lexer_lex(spread, cc);
     attron(COLOR_PAIR(1));
-    mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", left, left, cc->data);
+    mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", left, left, cc->as_error);
 }
