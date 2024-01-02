@@ -1,87 +1,80 @@
-#include "lexer.h"
+#include "debut.h"
 
-static void print_usage (const char*);
-static void read_file (FileContent*, const char*);
+static void init_grid (void);
+static void print_labels (Grid*);
 
-static void build_from_this (Spread*);
+static void print_coords (Grid*);
+static uint16_t count_digits (uint32_t);
 
-int main (int argc, char** argv)
+int main (void)
 {
-    if (argc == 1) print_usage(*argv);
+    Spread spread = {0};
+    init_grid();
 
-    Spread spread;
-    char opt;
+    getmaxyx(curscr, spread.grid.nYbytes, spread.grid.nXbytes);
+    print_labels(&spread.grid);
+    print_coords(&spread.grid);
 
-    while ((opt = getopt(argc, argv, "p:o:u:h")) != -1) {
-        switch (opt) {
-            case 'o': spread.filename_w = optarg; break;
-            case 'p': spread.filename_r = optarg; break;
-            case 'u': spread.filename_r = optarg; spread.ui_mode = 1; break;
-            case 'h': print_usage(*argv); break;
-            default : print_usage(*argv);
-        }
-    }
-
-    read_file(&spread.src, spread.filename_r);
-    if (!spread.ui_mode) {
-        build_from_this(&spread);
-        lexer_cell_by_cell(&spread);
-    }
-
-    return EXIT_SUCCESS;
+    getch();
+    endwin();
+    return 0;
 }
 
-static void print_usage (const char* s)
+static void init_grid (void)
 {
-    fprintf(stderr, "debut: usage: %s [-p|o|u <filename>] [-h]\n", s);
-    fputs("-p: parse and solve the <filename> table only.\n", stderr);
-    fputs("-o: save the result of the table in <filename>.\n", stderr);
-    fputs("-u: display ui and load contents of <filename>.\n", stderr);
-    fputs("-h: display this message\n", stderr);
-    exit(EXIT_SUCCESS);
+    initscr();
+    cbreak();
+
+    noecho();
+    start_color();
+
+    init_color(COLOR_BLACK, 0, 0, 0);
+    init_color(COLOR_MAGENTA, 218, 132, 245);
+
+    init_pair(1, COLOR_BLACK, COLOR_MAGENTA);
+    init_pair(2, COLOR_MAGENTA, COLOR_BLACK);
+
+    curs_set(0);
+    attron(COLOR_PAIR(1));
 }
 
-static void read_file (FileContent* src, const char* flname)
+static void print_labels (Grid* grid)
 {
-    FILE* file = fopen(flname, "r");
-    if (!file) {
-        fprintf(stderr, "debut: error: cannot load '%s' file; %s (%d).\n", flname, strerror(errno), errno);
-        exit(EXIT_FAILURE);
-    }
+    /* The spreadsheet looks like this:
+     * CC: <pos where you are>
+     * FM: <content of the cell>
+     * < COMMAND LINE >             -> This is all white space
+     *                                 until a command is excuted.
+     * ...
+     * ER: <error messages>
+     * */
+    const uint32_t padd = grid->nXbytes - 4;
 
-    fseek(file, 0, SEEK_END);
-    src->len = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    src->src = (char*) calloc(src->len, 1);
-    const size_t read = fread(src->src, 1, src->len, file);
-
-    if (read != src->len) {
-        fprintf(stderr, "debut: error: could not read all the %ldB, %ldB read only.\n", src->len, read);
-        exit(EXIT_FAILURE);
-    }
-
-    src->src[src->len - 1] = 0;
-    fclose(file);
+    mvprintw(0, 0, "CC: A0%-*.s", padd, " ");
+    mvprintw(1, 0, "FM: %-*.s", padd, " ");
+    mvprintw(2, 0, "%-*.s", grid->nXbytes, " ");
+    mvprintw(grid->nYbytes - 1, 0, "ER: %-*.s", padd, " ");
 }
 
-/* This function is used to know the number of rows
- * and cells made in a table when the -p arguement
- * is used, this is needed because the size of the
- * table could not be fixed.
- * */
-static void build_from_this (Spread* spread)
+static void print_coords (Grid* grid)
 {
-    const size_t len = spread->src.len;
-    for (size_t i = 0; i < len; i++) {
-        const char a = spread->src.src[i];
+    grid->nrows = grid->nYbytes - 5;
+    grid->left_padding = count_digits(grid->nYbytes) + 1;
 
-        if (a == '\n') spread->info.max_rows++;
-        else if (a == '|') spread->info.max_cells++;
-    }
+    mvprintw(3, 0, "%*c", grid->left_padding, ' ');
+    uint32_t ypos = 4, i;
 
-    spread->spread        = (Cell*) calloc(spread->info.max_cells, sizeof(Cell));
-    spread->offsets.marks = (uint16_t*) calloc(spread->info.max_rows, sizeof(uint16_t));
-    assert(spread->spread && spread->offsets.marks && "no memory enough");
+    for (i = 0; i < grid->nrows; i++)
+        mvprintw(ypos++, 0, "%*d", grid->left_padding, i);
 }
 
+static uint16_t count_digits (uint32_t n)
+{
+    uint16_t a = 1;
+    while (n >= 10) {
+        n *= .1;
+        a++;
+    }
+
+    return a;
+}
