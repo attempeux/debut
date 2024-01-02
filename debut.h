@@ -13,6 +13,9 @@
 #define DEBUT_CELL_LENGHT       512
 #define DEBUT_CELL_TOKEN_CAP    64
 
+#define DEBUT_WRT_FM_AT         1, 4
+#define DEBUT_WRT_CC_AT         0, 4
+
 typedef enum TokenType {
     token_is_number,
     token_is_unknown,

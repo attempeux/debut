@@ -12,7 +12,9 @@ static void get_column_name (char*, const uint32_t);
 static void start_moving (Spread*);
 
 static void check_bounds (Grid*, const uint32_t);
-static void update_formula (const Grid*, const Cell*);
+static void update_formula (const Grid*, const Cell*, const uint32_t);
+
+static Cell* update_cell (const Spread*, const Grid*);
 
 int main (void)
 {
@@ -86,7 +88,7 @@ static void print_coords (Grid* grid)
 
     for (i = 0; i < grid->ncolumns; i++) {
         get_column_name(columname, i);
-        printw("      %c%c      ", columname[0], columname[1]);
+        printw("      %c%c     .", columname[0], columname[1]);
     }
 }
 
@@ -122,22 +124,28 @@ static void start_moving (Spread* spread)
     keypad(stdscr, TRUE);
     curs_set(2);
 
+    /* FM: <bytes_to_print_left>xxx|
+     *     4th byte             ` Stops when theres 3 bytes left
+     *      ` Starts printing here
+     * */
+    const uint32_t bytes_to_print_left = grid->nXbytes - 7;
+
     Cell* cc   = &spread->cells[0];
     uint32_t K = 0;
 
     while ((K = getch()) != KEY_F(1)) {
-
         if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
             check_bounds(grid, K);
+            update_cell(spread, grid);
         }
 
-        if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGHT))
+        else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGHT))
             cc->data[cc->nth_ch++] = K;
 
-        if (IS_IT_BCKSP(K) && cc->nth_ch)
+        else if (IS_IT_BCKSP(K) && cc->nth_ch)
             cc->data[--cc->nth_ch] = 0;
 
-        update_formula(grid, cc);
+        update_formula(grid, cc, bytes_to_print_left);
     }
 }
 
@@ -148,10 +156,19 @@ static void check_bounds (Grid* grid, const uint32_t K)
 
     else if ((K == KEY_DOWN) && (grid->c_row < grid->nrows - 1)) grid->c_row++;
     else if ((K == KEY_RIGHT) && (grid->c_col < grid->ncolumns - 1)) grid->c_col++;
+}
+
+static void update_formula (const Grid* grid, const Cell* cc, const uint32_t left)
+{
+    mvprintw(DEBUT_WRT_FM_AT, "%-*.*s", left, left, cc->data);
     move(4 + grid->c_row, grid->left_padding + DEBUT_CELL_WIDTH * grid->c_col);
 }
 
-static void update_formula (const Grid* grid, const Cell* cc)
+static Cell* update_cell (const Spread* spread, const Grid* grid)
 {
-    fprintf(stderr, "getting '%s' for (%d %d)\n", cc->data, grid->c_row, grid->c_col);
+    char colname[2];
+    get_column_name(colname, grid->c_col);
+
+    mvprintw(DEBUT_WRT_CC_AT, "%s%d ", colname, grid->c_row);
+    return &spread->cells[grid->c_row * grid->ncolumns + grid->c_col];
 }
