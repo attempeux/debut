@@ -4,7 +4,9 @@ static void init_grid (void);
 static void print_labels (Grid*);
 
 static void print_coords (Grid*);
-static uint16_t count_digits (uint32_t);
+static const uint16_t count_digits (uint32_t);
+
+static void get_column_name (char*, uint32_t);
 
 int main (void)
 {
@@ -66,6 +68,17 @@ static void print_coords (Grid* grid)
 
     for (i = 0; i < grid->nrows; i++)
         mvprintw(ypos++, 0, "%*d", grid->left_padding, i);
+
+    move(3, grid->left_padding);
+    grid->ncolumns = (grid->nXbytes - grid->left_padding) / DEBUT_CELL_WIDTH;
+
+    assert(grid->ncolumns < 650 && "no supported number of columns");
+    char columname[2] = {0};
+
+    for (i = 0; i < grid->ncolumns; i++) {
+        get_column_name(columname, i);
+        printw("      %c%c      ", columname[0], columname[1]);
+    }
 }
 
 static uint16_t count_digits (uint32_t n)
@@ -77,4 +90,17 @@ static uint16_t count_digits (uint32_t n)
     }
 
     return a;
+}
+
+static void get_column_name (char* name, uint32_t at)
+{
+    if (at < 26) {
+        name[0] = 'A' + at;
+        name[1] = ' ';
+        return;
+    }
+
+    const uint32_t nth_time = at / 26;
+    name[0] = nth_time + 'A' - 1;
+    name[1] = 'A' + (at - 26 * nth_time);
 }

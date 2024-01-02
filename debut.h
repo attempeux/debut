@@ -8,6 +8,8 @@
 #include <ncurses.h>
 #include <stdbool.h>
 
+#define DEBUT_CELL_WIDTH    14
+
 typedef struct Grid {
     uint32_t nXbytes, nYbytes;
     uint32_t ncolumns, nrows;
