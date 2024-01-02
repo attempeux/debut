@@ -1,5 +1,7 @@
 #include "debut.h"
 
+#define IS_IT_BCKSP(c)  ((c == KEY_BACKSPACE) || (c == 127) || (c == '\b'))
+
 static void init_grid (void);
 static void print_labels (Grid*);
 
@@ -10,6 +12,7 @@ static void get_column_name (char*, const uint32_t);
 static void start_moving (Spread*);
 
 static void check_bounds (Grid*, const uint32_t);
+static void update_formula (const Grid*, const Cell*);
 
 int main (void)
 {
@@ -19,6 +22,9 @@ int main (void)
     getmaxyx(curscr, spread.grid.nYbytes, spread.grid.nXbytes);
     print_labels(&spread.grid);
     print_coords(&spread.grid);
+
+    spread.cells = (Cell*) calloc(spread.grid.ncolumns * spread.grid.nrows, sizeof(Cell));
+    assert(spread.cells && "no memory enough to proceed.");
 
     start_moving(&spread);
     getch();
@@ -116,13 +122,22 @@ static void start_moving (Spread* spread)
     keypad(stdscr, TRUE);
     curs_set(2);
 
+    Cell* cc   = &spread->cells[0];
     uint32_t K = 0;
+
     while ((K = getch()) != KEY_F(1)) {
 
         if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
             check_bounds(grid, K);
         }
 
+        if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGHT))
+            cc->data[cc->nth_ch++] = K;
+
+        if (IS_IT_BCKSP(K) && cc->nth_ch)
+            cc->data[--cc->nth_ch] = 0;
+
+        update_formula(grid, cc);
     }
 }
 
@@ -133,7 +148,10 @@ static void check_bounds (Grid* grid, const uint32_t K)
 
     else if ((K == KEY_DOWN) && (grid->c_row < grid->nrows - 1)) grid->c_row++;
     else if ((K == KEY_RIGHT) && (grid->c_col < grid->ncolumns - 1)) grid->c_col++;
-
-    move(5 + grid->c_row - 1, grid->left_padding + DEBUT_CELL_WIDTH * grid->c_col);
+    move(4 + grid->c_row, grid->left_padding + DEBUT_CELL_WIDTH * grid->c_col);
 }
 
+static void update_formula (const Grid* grid, const Cell* cc)
+{
+    fprintf(stderr, "getting '%s' for (%d %d)\n", cc->data, grid->c_row, grid->c_col);
+}
