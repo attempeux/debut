@@ -54,8 +54,13 @@ typedef enum CellType {
 } CellType;
 
 typedef struct Token {
-    char* data;
-    uint16_t len;
+    union {
+        void*  reference;                           /* This is actually a Cell* */
+        char*  word;
+        double number;
+    } as;                                           /* Different literal values a token can be. */
+    uint16_t length_as_word;
+    uint16_t byte_definition;
     TokenType type;
 } Token;
 
@@ -69,10 +74,10 @@ typedef struct Cell {
 } Cell;
 
 typedef struct Grid {
-    uint32_t nXbytes, nYbytes;
-    uint32_t ncolumns, nrows;
-    uint32_t left_padding;
-    uint32_t c_row, c_col;
+    uint32_t nXbytes, nYbytes;                      /* Total number of bytes available to display the table. */
+    uint32_t ncolumns, nrows;                       /* How many columns and rows are available. */
+    uint32_t left_padding;                          /* Number of bytes used to print the rows number column. */
+    uint32_t c_row, c_col;                          /* Number of row and column as the user moves around. */
 } Grid;
 
 typedef struct Spread {

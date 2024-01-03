@@ -11,9 +11,9 @@
 #define ERROR_UNKNOWN_FORMULA   2
 
 static TokenType find_type_of (const char, const char);
-static uint16_t get_literal (const char*, uint16_t*, const TokenType);
+static void get_literal (const char*, uint16_t*, Token*);
 
-static void get_function (const char*, const uint16_t, Token*);
+static uint16_t get_function (const char*, const uint16_t, Token*);
 static void set_error_on_cc (Cell*, const uint16_t, ...);
 
 void lexer_lex (const Spread* spread, Cell* cc)
@@ -31,18 +31,14 @@ void lexer_lex (const Spread* spread, Cell* cc)
 
         if (isspace(a)) continue;
         Token token = {
-            .data = cc->data + i,
-            .len  = 1,
             .type = find_type_of(a, ((i + 1) < cc->nth_ch) ? cc->data[i + 1] : 0)
         };
 
         if (IS_IT_LIT_TOKEN(token.type))
-            token.len = get_literal(cc->data, &i, token.type);
+            get_literal(cc->data, &i, &token);
 
-        else if (token.type == token_is_func) {
-            get_function(cc->data + i, cc->nth_ch - i, &token);
-            i += token.len - 1;
-        }
+        else if (token.type == token_is_func)
+            i += get_function(cc->data + i, cc->nth_ch - i, &token);
 
         if (IS_IT_CONSTANT(token.type) && !cc->nth_token) {
             cc->type      = (token.type == token_is_numb) ? cell_is_numb : cell_is_text;
@@ -52,7 +48,7 @@ void lexer_lex (const Spread* spread, Cell* cc)
         }
 
         if (token.type == token_is_unkn) {
-            set_error_on_cc(cc, ERROR_UNKNOWN_TOKEN, row, col, token.len, token.data);
+            set_error_on_cc(cc, ERROR_UNKNOWN_TOKEN, row, col, i);
             return;
         }
 
@@ -95,19 +91,28 @@ static TokenType find_type_of (const char a, const char b)
     return isdigit(a) ? token_is_numb : token_is_unkn;
 }
 
-static uint16_t get_literal (const char* src, uint16_t* pos, const TokenType is)
+static void get_literal (const char* src, uint16_t* pos, Token* token)
 {
     typedef int (*defines) (const int);
-    defines fx = (is == token_is_numb) ? isdigit : isalnum;
+    defines fx = (token->type == token_is_numb) ? isdigit : isalnum;
 
-    uint16_t len = 0;
-    do {
-        len++;
-        *pos += 1;
-    } while (fx(src[*pos]));
+    const uint16_t prev_pos = *pos;
+    do { *pos += 1; } while (fx(src[*pos]));
 
-    *pos -= 1;
-    return len;
+    switch (token->type) {
+        case token_is_word: {
+            token->as.word = (char*) src + prev_pos;
+            token->length_as_word = *pos - prev_pos;
+            return;
+        }
+
+        case token_is_numb: {
+            token->as.number = strtod(src, NULL);
+            return;
+        }
+
+        default: { assert("NO YET"); }
+    }
 }
 
 typedef struct SpreadFunction {
@@ -116,7 +121,7 @@ typedef struct SpreadFunction {
     TokenType token;
 } SpreadFunction;
 
-static void get_function (const char* src, const uint16_t left, Token* t)
+static uint16_t get_function (const char* src, const uint16_t left, Token* t)
 {
     static const uint16_t nfuncs = 10;
     static const SpreadFunction functions[] = {
@@ -135,13 +140,13 @@ static void get_function (const char* src, const uint16_t left, Token* t)
     for (uint16_t i = 0; i < nfuncs; i++) {
         const SpreadFunction *fx = &functions[i];
         if ((left >= fx->len) && !strncmp(src, fx->name, fx->len)) {
-            t->len  = fx->len;
             t->type = fx->token;
-            return;
+            return fx->len - 1;
         }
     }
 
     t->type = token_is_unkn;
+    return 0;
 }
 
 static void set_error_on_cc (Cell* cc, const uint16_t err, ...)
@@ -150,7 +155,7 @@ static void set_error_on_cc (Cell* cc, const uint16_t err, ...)
     va_start(args, err);
 
     static const char* errfmts[] = {
-        "(%d, %d): got unknown token: %.*s.",
+        "(%d, %d): got unknown token or function at %d byte.",
         "(%d, %d): have reached maximum token capacity; %d Tokens.",
         "(%d, %d): unknown formula; cannot proceed."
     };

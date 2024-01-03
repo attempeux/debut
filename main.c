@@ -59,8 +59,7 @@ static void print_labels (Grid* grid)
     /* The spreadsheet looks like this:
      * CC: <pos where you are>
      * FM: <content of the cell>
-     * < COMMAND LINE >             -> This is all white space
-     *                                 until a command is excuted.
+     * < COMMAND LINE >             -> This is all white space until a command is excuted.
      * ...   A    B
      * 0    ...  ...
      * 1    ...  ...
@@ -76,6 +75,11 @@ static void print_labels (Grid* grid)
 
 static void print_coords (Grid* grid)
 {
+    /* No magic numbers:
+     * grid->nYbytes - 5, 5 since that is the number of rows used to display other kind of info.
+     * grid->ncolumns < 650: 650 since that is the number you get when 26 * 25; that is the max number of columns.
+     * other numbers when move or mvprintw are used mean the position of some label.
+     * */
     grid->nrows = grid->nYbytes - 5;
     grid->left_padding = count_digits(grid->nYbytes) + 1;
 
@@ -100,11 +104,7 @@ static void print_coords (Grid* grid)
 static uint16_t count_digits (uint32_t n)
 {
     uint16_t a = 1;
-    while (n >= 10) {
-        n *= .1;
-        a++;
-    }
-
+    while (n >= 10) { n *= .1; a++; }
     return a;
 }
 
@@ -155,14 +155,10 @@ static void start_moving (Spread* spread)
             cc = update_cell(spread, grid);
         }
 
-        else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGTH)) {
+        else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGTH))
             cc->data[cc->nth_ch++] = K;
-        }
-
-        else if (IS_IT_BCKSP(K) && cc->nth_ch) {
+        else if (IS_IT_BCKSP(K) && cc->nth_ch)
             cc->data[--cc->nth_ch] = 0;
-        }
-
         update_formula(grid, cc, Bsleft);
     }
 }
