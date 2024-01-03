@@ -18,6 +18,7 @@ static void set_error_on_cc (Cell*, const uint16_t, ...);
 void lexer_lex (const Spread* spread, Cell* cc)
 {
     if (!cc->nth_fx_ch) {
+        cc->as.number = 0;
         cc->type = cell_is_empt;
         return;
     }
@@ -29,8 +30,9 @@ void lexer_lex (const Spread* spread, Cell* cc)
     for (uint16_t i = 0; i < cc->nth_fx_ch; i++) {
         const char a = cc->as_formula[i];
         if (isspace(a)) continue;
-        token.type = find_type_of(a);
 
+        token.as.word = cc->as_formula + i;
+        token.type    = find_type_of(a);
 
         if (IS_IT_LIT_TOKEN(token.type))
             get_literal(cc->as_formula, &i, &token);
@@ -45,9 +47,9 @@ void lexer_lex (const Spread* spread, Cell* cc)
          * token there is not reason to keep getting tokens
          * since the cell is just plain text.
          * */
-        if (!fx->nth_token && (IS_IT_CONSTANT(token.type) || !IS_IT_LIT_TOKEN(token.type))) {
+        if (!fx->nth_token && (IS_IT_CONSTANT(token.type) || !IS_IT_FORMULA(token.type))) {
             if (token.type != token_is_numb) {
-                snprintf(cc->as.text, cc->nth_fx_ch + 1, "%.*s", DEBUT_CELL_VALUE_LEN, token.as.word);
+                snprintf(cc->as.text, cc->nth_fx_ch + 1, "%.*s", DEBUT_CELL_VALUE_LEN, cc->as_formula);
                 cc->type = cell_is_text;
             }
             else {
@@ -99,7 +101,7 @@ static void get_literal (const char* src, uint16_t* pos, Token* token)
         }
 
         case token_is_numb: {
-            token->as.number = strtod(src, NULL);
+            token->as.number = strtod(src + prev_pos, NULL);
             return;
         }
 
@@ -150,6 +152,8 @@ static void set_error_on_cc (Cell* cc, const uint16_t err, ...)
         "maximum token capacity; which is %d Tokens.",
     };
 
+    /* 8 since there are 7 characters plus \0 byte; NO MAGIC NUMBERS!!! */
+    snprintf(cc->as.text, 8, "!#ERROR");
     vsnprintf(cc->as_error, DEBUT_CELL_ERROR_LEN, errfmts[err], args);
     cc->type = cell_is_errr;
     va_end(args);

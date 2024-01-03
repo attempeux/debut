@@ -9,12 +9,12 @@
 
 #define DEBUT_CELL_WIDTH        10              /* Width of each cell on the table. */
 #define DEBUT_CELL_TOKEN_CAP    128             /* Maximum number of tokens per cell. */
-#define DEBUT_CELL_FORMULA_LEN  256             /* Maximum number of characters while writing the formla. */
+#define DEBUT_CELL_FORMULA_LEN  256             /* Maximum number of characters while writing the formula. */
 #define DEBUT_CELL_ERROR_LEN    64              /* Maximum number of characters to write an error. */
 #define DEBUT_CELL_VALUE_LEN    64              /* Maximum number of characters to write the answer of a cell. */
 
-#define DEBUT_WRT_FM_AT         1, 4
 #define DEBUT_WRT_CC_AT         0, 4
+#define DEBUT_WRT_FM_AT         1, 4
 
 typedef enum TokenType {
     token_is_unkn = 0,
@@ -90,6 +90,7 @@ typedef struct Grid {
     uint32_t ncolumns, nrows;                       /* How many columns and rows are available. */
     uint32_t left_padding;                          /* Number of bytes used to print the rows number column. */
     uint32_t c_row, c_col;                          /* Number of row and column as the user moves around. */
+    uint16_t cw;                                    /* Cell widht. */
 } Grid;
 
 typedef struct Spread {

@@ -59,7 +59,7 @@ static void print_labels (Grid* grid)
     /* The spreadsheet looks like this:
      * CC: <pos where you are>
      * FM: <formula of the cell>
-     * CT: <content of the cell> / @NOTE: THIS CAN ALSO BE USED TO EXECUTE COMMANDS.
+     *          <command line>
      * ...   A    B
      * 0    ...  ...
      * 1    ...  ...
@@ -69,7 +69,7 @@ static void print_labels (Grid* grid)
 
     mvprintw(0, 0, "CC: A0%-*.s", padd, " ");
     mvprintw(1, 0, "FM: %-*.s", padd, " ");
-    mvprintw(2, 0, "CT: %-*.s", padd, " ");
+    mvprintw(2, 0, "%*c", grid->nXbytes, ' ');
     mvprintw(grid->nYbytes - 1, 0, "ER: :)%-*.s", padd, " ");
 }
 
@@ -206,7 +206,6 @@ static void evaluate_cell (const Spread* spread, Cell* cc)
                           maxndigits = printwidth - 5;
 
     attron(COLOR_PAIR(2));
-
     lexer_lex(spread, cc);
 
     if (cc->type == cell_is_numb)
