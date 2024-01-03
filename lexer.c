@@ -1,21 +1,25 @@
 #include "lexer.h"
+#include <stdio.h>
+#include <ctype.h>
+#include <stdarg.h>
 
-#define MUST_DEFINE_TOKEN(a)    ((a == token_is_numb) || (a == token_is_word) || (a == token_is_refc))
+#define TOKEN_IS_CONTS(a)       ((a == token_is_numb) || (a == token_is_word))
+#define MUST_DEFINE_TOKEN(a)    (TOKEN_IS_CONTS(a)    || (a == token_is_refc))
 
-#define ERROR_UNKNOWN_TOKEN     "unknown token; cannot proceed."
+#define ERROR_UNKNOWN_TOKEN     0
+#define ERROR_LARGER_TOKEN      1
 
 static TokenType find_type_of (const char, const char);
 static uint16_t define_token (const char*, uint16_t*, const TokenType);
 
 static void define_function (const char*, const uint16_t, Token*);
-static void set_error_on_cc (Cell*, char*);
+static void set_error_on_cc (Cell*, const uint16_t, ...);
 
 void lexer_lex (const Spread* spread, Cell* cc)
 {
-    if (!cc->modified) return;
+    const uint32_t row = spread->grid.c_row, col = spread->grid.c_col;
 
-    bool isconst = false;
-    for (uint16_t i = 0; i < cc->nth_ch && !isconst; i++) {
+    for (uint16_t i = 0; i < cc->nth_ch; i++) {
         const char a = cc->data[i];
 
         if (isspace(a)) continue;
@@ -35,14 +39,18 @@ void lexer_lex (const Spread* spread, Cell* cc)
         }
 
         if (token.type == token_is_unkn) {
-            set_error_on_cc(cc, ERROR_UNKNOWN_TOKEN);
+            fprintf(stderr, "unk: %*s\n", token.len, token.data);
+            set_error_on_cc(cc, ERROR_UNKNOWN_TOKEN, row, col, token.len, token.data);
             return;
         }
+
+        // XXX: Larger tokens
 
         fprintf(stderr, "token: <%.*s %d>\n", token.len, token.data, token.len);
     }
 
-    cc->modified = false;
+
+    cc->type = cell_is_text;
 }
 
 static TokenType find_type_of (const char a, const char b)
@@ -115,8 +123,18 @@ static void define_function (const char* src, const uint16_t left, Token* t)
     t->type = token_is_unkn;
 }
 
-static void set_error_on_cc (Cell* cc, char* err)
+static void set_error_on_cc (Cell* cc, const uint16_t err, ...)
 {
-    cc->as_error = err;
-    cc->type     = cell_is_errr;
+    va_list args;
+    va_start(args, err);
+
+    static const char* errfmts[] = {
+        "(%d, %d): got unknown token: %.*s.",
+        "(%d, %d): has a token longer than expected; %dB."
+    };
+
+    vsnprintf(cc->as_error, DEBUT_ERR_MSG_LENGTH, errfmts[err], args);
+    cc->type = cell_is_errr;
+    va_end(args);
 }
+

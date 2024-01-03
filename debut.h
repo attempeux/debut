@@ -1,17 +1,16 @@
 #ifndef _DEBUT_H
 #define _DEBUT_H
 #include <ctype.h>
-#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <ncurses.h>
 #include <stdbool.h>
 
 #define DEBUT_CELL_WIDTH        10
-#define DEBUT_CELL_LENGHT       512
+#define DEBUT_CELL_LENGTH       512
 #define DEBUT_CELL_TOKEN_CAP    64
+#define DEBUT_ERR_MSG_LENGTH    32
 
 #define DEBUT_WRT_FM_AT         1, 4
 #define DEBUT_WRT_CC_AT         0, 4
@@ -62,10 +61,11 @@ typedef struct Token {
 
 typedef struct Cell {
     Token tokens[DEBUT_CELL_TOKEN_CAP];
-    char data[DEBUT_CELL_LENGHT], *as_error;
+    char data[DEBUT_CELL_LENGTH];
+    char as_error[DEBUT_ERR_MSG_LENGTH];
     uint16_t nth_token, nth_ch;
     CellType type;
-    bool modified;
+    bool solved;
 } Cell;
 
 typedef struct Grid {
@@ -78,6 +78,7 @@ typedef struct Grid {
 typedef struct Spread {
     Grid grid;
     Cell* cells;
+
 } Spread;
 
 #endif

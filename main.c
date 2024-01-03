@@ -1,6 +1,8 @@
 #include "lexer.h"
+#include <ncurses.h>
 
 #define IS_IT_BCKSP(c)  ((c == KEY_BACKSPACE) || (c == 127) || (c == '\b'))
+#define IS_IT_ENTER(c)  ((c == KEY_ENTER) || (c == '\r') || (c == '\n'))
 
 static void init_grid (void);
 static void print_labels (Grid*);
@@ -128,8 +130,8 @@ static void start_moving (Spread* spread)
     curs_set(2);
 
     /* FM: <Bsleft>xxx|
-     *     4th byte  ` Stops when theres 3 bytes left
-     *      ` Starts printing here
+     *     4th byte  ` Stops when there's 3 bytes left.
+     *      ` Starts printing here.
      * */
     const uint32_t Bsleft = grid->nXbytes - 7;
 
@@ -137,22 +139,24 @@ static void start_moving (Spread* spread)
     uint32_t K = 0;
 
     while ((K = getch()) != KEY_F(1)) {
-
-        if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
+        if (IS_IT_ENTER(K)) {
             run_cell(spread, cc);
-            check_bounds(grid, K);
-            cc = update_cell(spread, grid);
             mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", Bsleft, Bsleft, (cc->type == cell_is_errr) ? cc->as_error : ":)");
         }
 
-        else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGHT)) {
+        else if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
+            check_bounds(grid, K);
+            cc = update_cell(spread, grid);
+        }
+
+        else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGTH)) {
             cc->data[cc->nth_ch++] = K;
-            cc->modified = true;
+            // cc->modified = true;
         }
 
         else if (IS_IT_BCKSP(K) && cc->nth_ch) {
             cc->data[--cc->nth_ch] = 0;
-            cc->modified = true;
+            // cc->modified = true;
         }
 
         update_formula(grid, cc, Bsleft);
@@ -168,21 +172,32 @@ static void check_bounds (Grid* grid, const uint32_t K)
     else if ((K == KEY_RIGHT) && (grid->c_col < grid->ncolumns - 1)) grid->c_col++;
 }
 
+/* Every time content is added or deleted from the current cell
+ * the formula label must be updated.
+ * */
 static void update_formula (const Grid* grid, const Cell* cc, const uint32_t left)
 {
     mvprintw(DEBUT_WRT_FM_AT, "%-*.*s", left, left, cc->data);
     move(4 + grid->c_row, grid->left_padding + DEBUT_CELL_WIDTH * grid->c_col);
 }
 
+/* Once any arrow key is pressed and the new position
+ * is within the bounds this function will display the
+ * position where the user is and will return the new
+ * cell.
+ * */
 static Cell* update_cell (const Spread* spread, const Grid* grid)
 {
-    char colname[3] = {0};
-    get_column_name(colname, grid->c_col);
-
-    mvprintw(DEBUT_WRT_CC_AT, "%s%d ", colname, grid->c_row);
+    char name[3] = {0};
+    get_column_name(name, grid->c_col);
+    mvprintw(DEBUT_WRT_CC_AT, "%s%d ", name, grid->c_row);
     return &spread->cells[grid->c_row * grid->ncolumns + grid->c_col];
 }
 
+/* Once the cell has been completed and <enter> is
+ * pressed this function is call and all the lexer
+ * and parser stuff will be done.
+ * */
 static void run_cell (const Spread* spread, Cell* cc)
 {
     static const uint32_t printwidth = DEBUT_CELL_WIDTH - 1;
