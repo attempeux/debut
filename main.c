@@ -58,8 +58,8 @@ static void print_labels (Grid* grid)
 {
     /* The spreadsheet looks like this:
      * CC: <pos where you are>
-     * FM: <content of the cell>
-     * < COMMAND LINE >             -> This is all white space until a command is excuted.
+     * FM: <formula of the cell>
+     * CT: <content of the cell> / @NOTE: THIS CAN ALSO BE USED TO EXECUTE COMMANDS.
      * ...   A    B
      * 0    ...  ...
      * 1    ...  ...
@@ -69,7 +69,7 @@ static void print_labels (Grid* grid)
 
     mvprintw(0, 0, "CC: A0%-*.s", padd, " ");
     mvprintw(1, 0, "FM: %-*.s", padd, " ");
-    mvprintw(2, 0, "%-*.s", grid->nXbytes, " ");
+    mvprintw(2, 0, "CT: %-*.s", padd, " ");
     mvprintw(grid->nYbytes - 1, 0, "ER: :)%-*.s", padd, " ");
 }
 
@@ -155,10 +155,12 @@ static void start_moving (Spread* spread)
             cc = update_cell(spread, grid);
         }
 
-        else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGTH))
-            cc->data[cc->nth_ch++] = K;
-        else if (IS_IT_BCKSP(K) && cc->nth_ch)
-            cc->data[--cc->nth_ch] = 0;
+        else if (isprint(K) && (cc->nth_fx_ch < DEBUT_CELL_FORMULA_LEN))
+            cc->as_formula[cc->nth_fx_ch++] = K;
+
+        else if (IS_IT_BCKSP(K) && cc->nth_fx_ch)
+            cc->as_formula[--cc->nth_fx_ch] = 0;
+
         update_formula(grid, cc, Bsleft);
     }
 }
@@ -177,7 +179,7 @@ static void check_bounds (Grid* grid, const uint32_t K)
  * */
 static void update_formula (const Grid* grid, const Cell* cc, const uint32_t left)
 {
-    mvprintw(DEBUT_WRT_FM_AT, "%-*.*s", left, left, cc->data);
+    mvprintw(DEBUT_WRT_FM_AT, "%-*.*s", left, left, cc->as_formula);
     move(4 + grid->c_row, grid->left_padding + DEBUT_CELL_WIDTH * grid->c_col);
 }
 
@@ -200,11 +202,17 @@ static Cell* update_cell (const Spread* spread, const Grid* grid)
  * */
 static void evaluate_cell (const Spread* spread, Cell* cc)
 {
-    static const uint32_t printwidth = DEBUT_CELL_WIDTH - 1;
+    static const uint32_t printwidth = DEBUT_CELL_WIDTH - 1,
+                          maxndigits = printwidth - 5;
 
     attron(COLOR_PAIR(2));
-    printw("%-*.*s", printwidth, printwidth, cc->data);
 
     lexer_lex(spread, cc);
+
+    if (cc->type == cell_is_numb)
+        printw("%*.*g", printwidth, maxndigits, cc->as.number);
+    else if (cc->type == cell_is_text)
+        printw("%-*.*s", printwidth, printwidth, cc->as.text);
+
     attron(COLOR_PAIR(1));
 }

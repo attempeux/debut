@@ -7,10 +7,11 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#define DEBUT_CELL_WIDTH        10
-#define DEBUT_CELL_LENGTH       512
-#define DEBUT_CELL_TOKEN_CAP    64
-#define DEBUT_ERR_MSG_LENGTH    64
+#define DEBUT_CELL_WIDTH        10              /* Width of each cell on the table. */
+#define DEBUT_CELL_TOKEN_CAP    128             /* Maximum number of tokens per cell. */
+#define DEBUT_CELL_FORMULA_LEN  256             /* Maximum number of characters while writing the formla. */
+#define DEBUT_CELL_ERROR_LEN    64              /* Maximum number of characters to write an error. */
+#define DEBUT_CELL_VALUE_LEN    64              /* Maximum number of characters to write the answer of a cell. */
 
 #define DEBUT_WRT_FM_AT         1, 4
 #define DEBUT_WRT_CC_AT         0, 4
@@ -55,20 +56,31 @@ typedef enum CellType {
 
 typedef struct Token {
     union {
-        void*  reference;                           /* This is actually a Cell* */
+        void*  reference;                           /* This is actually a Cell pointer. */
         char*  word;
         double number;
     } as;                                           /* Different literal values a token can be. */
-    uint16_t length_as_word;
-    uint16_t byte_definition;
+    uint16_t length_as_word;                        /* Length of the word in case the token is type word. */
+    uint16_t byte_definition;                       /* Position in the formula where the byte was defined. */
     TokenType type;
 } Token;
 
-typedef struct Cell {
+typedef struct Formula {
     Token tokens[DEBUT_CELL_TOKEN_CAP];
-    char data[DEBUT_CELL_LENGTH];
-    char as_error[DEBUT_ERR_MSG_LENGTH];
-    uint16_t nth_token, nth_ch;
+    uint16_t nth_token;
+} Formula;
+
+typedef struct Cell {
+    Formula fx;
+    char as_formula[DEBUT_CELL_FORMULA_LEN];
+    char as_error[DEBUT_CELL_ERROR_LEN];
+
+    union {
+        double number;
+        char text[DEBUT_CELL_VALUE_LEN];
+    } as;
+
+    uint16_t nth_fx_ch;
     CellType type;
     bool solved;
 } Cell;

@@ -5,12 +5,11 @@
 
 #define IS_IT_CONSTANT(a)       ((a == token_is_numb) || (a == token_is_word))
 #define IS_IT_LIT_TOKEN(a)      (IS_IT_CONSTANT(a)    || (a == token_is_refc))
+#define IS_IT_FORMULA(a)        ((a == token_is_dolr) || (a == token_is_qust))
 
-#define ERROR_UNKNOWN_TOKEN     0
-#define ERROR_MAX_CAPACITY      1
-#define ERROR_UNKNOWN_FORMULA   2
+#define ERROR_MAX_CAPACITY      0
 
-static TokenType find_type_of (const char, const char);
+static TokenType find_type_of (const char);
 static void get_literal (const char*, uint16_t*, Token*);
 
 static uint16_t get_function (const char*, const uint16_t, Token*);
@@ -18,59 +17,57 @@ static void set_error_on_cc (Cell*, const uint16_t, ...);
 
 void lexer_lex (const Spread* spread, Cell* cc)
 {
-    if (!cc->nth_ch) {
+    if (!cc->nth_fx_ch) {
         cc->type = cell_is_empt;
         return;
     }
 
-    cc->nth_token = 0;
-    const uint32_t row = spread->grid.c_row, col = spread->grid.c_col;
+    Formula* fx   = &cc->fx;
+    fx->nth_token = 0;
+    Token token   = {0};
 
-    for (uint16_t i = 0; i < cc->nth_ch; i++) {
-        const char a = cc->data[i];
-
+    for (uint16_t i = 0; i < cc->nth_fx_ch; i++) {
+        const char a = cc->as_formula[i];
         if (isspace(a)) continue;
-        Token token = {
-            .type = find_type_of(a, ((i + 1) < cc->nth_ch) ? cc->data[i + 1] : 0)
-        };
+        token.type = find_type_of(a);
+
 
         if (IS_IT_LIT_TOKEN(token.type))
-            get_literal(cc->data, &i, &token);
+            get_literal(cc->as_formula, &i, &token);
 
         else if (token.type == token_is_func)
-            i += get_function(cc->data + i, cc->nth_ch - i, &token);
+            i += get_function(cc->as_formula + i, cc->nth_fx_ch - i, &token);
 
-        if (IS_IT_CONSTANT(token.type) && !cc->nth_token) {
-            cc->type      = (token.type == token_is_numb) ? cell_is_numb : cell_is_text;
-            cc->data[++i] = 0;
-            cc->nth_ch    = i;
+        /* If the very first token is a constant one, it
+         * means no formula it is gonna be applied here.
+         *
+         * If the first token is nor constant nor formula
+         * token there is not reason to keep getting tokens
+         * since the cell is just plain text.
+         * */
+        if (!fx->nth_token && (IS_IT_CONSTANT(token.type) || !IS_IT_LIT_TOKEN(token.type))) {
+            if (token.type != token_is_numb) {
+                snprintf(cc->as.text, cc->nth_fx_ch + 1, "%.*s", DEBUT_CELL_VALUE_LEN, token.as.word);
+                cc->type = cell_is_text;
+            }
+            else {
+                cc->as.number = token.as.number;
+                cc->type = cell_is_numb;
+            }
+
             return;
         }
 
-        if (token.type == token_is_unkn) {
-            set_error_on_cc(cc, ERROR_UNKNOWN_TOKEN, row, col, i);
+        if (fx->nth_token == DEBUT_CELL_TOKEN_CAP) {
+            set_error_on_cc(cc, ERROR_MAX_CAPACITY, DEBUT_CELL_TOKEN_CAP);
             return;
         }
 
-        if (cc->nth_token == DEBUT_CELL_TOKEN_CAP) {
-            set_error_on_cc(cc, ERROR_MAX_CAPACITY, row, col, DEBUT_CELL_TOKEN_CAP);
-            return;
-        }
-
-        memcpy(&cc->tokens[cc->nth_token++], &token, sizeof(Token));
-    }
-
-    switch (cc->tokens[0].type) {
-        case token_is_dolr: cc->type = cell_is_numb; break;
-        case token_is_qust: cc->type = cell_is_numb; break;
-        default: {
-            set_error_on_cc(cc, ERROR_UNKNOWN_FORMULA, row, col);
-            return;
-        }
+        memcpy(&fx->tokens[fx->nth_token++], &token, sizeof(Token));
     }
 }
 
-static TokenType find_type_of (const char a, const char b)
+static TokenType find_type_of (const char a)
 {
     switch (a) {
         case '@': case '&':
@@ -79,16 +76,11 @@ static TokenType find_type_of (const char a, const char b)
         case '%': case '$':
         case '?': case '(':
         case ')': case '{':
-        case '}': return a;
+        case '}': case '-':
+            return a;
     }
 
-    if (isalpha(a))
-        return token_is_word;
-
-    if ((a == '-'))
-        return isdigit(b) ? token_is_numb : token_is_mins;
-
-    return isdigit(a) ? token_is_numb : token_is_unkn;
+    return isdigit(a) ? token_is_numb : token_is_word;
 }
 
 static void get_literal (const char* src, uint16_t* pos, Token* token)
@@ -155,12 +147,10 @@ static void set_error_on_cc (Cell* cc, const uint16_t err, ...)
     va_start(args, err);
 
     static const char* errfmts[] = {
-        "(%d, %d): got unknown token or function at %d byte.",
-        "(%d, %d): have reached maximum token capacity; %d Tokens.",
-        "(%d, %d): unknown formula; cannot proceed."
+        "maximum token capacity; which is %d Tokens.",
     };
 
-    vsnprintf(cc->as_error, DEBUT_ERR_MSG_LENGTH, errfmts[err], args);
+    vsnprintf(cc->as_error, DEBUT_CELL_ERROR_LEN, errfmts[err], args);
     cc->type = cell_is_errr;
     va_end(args);
 }
