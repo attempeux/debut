@@ -10,7 +10,7 @@
 #define DEBUT_CELL_WIDTH        10
 #define DEBUT_CELL_LENGTH       512
 #define DEBUT_CELL_TOKEN_CAP    64
-#define DEBUT_ERR_MSG_LENGTH    32
+#define DEBUT_ERR_MSG_LENGTH    64
 
 #define DEBUT_WRT_FM_AT         1, 4
 #define DEBUT_WRT_CC_AT         0, 4
@@ -78,7 +78,6 @@ typedef struct Grid {
 typedef struct Spread {
     Grid grid;
     Cell* cells;
-
 } Spread;
 
 #endif

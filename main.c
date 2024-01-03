@@ -17,7 +17,7 @@ static void check_bounds (Grid*, const uint32_t);
 static void update_formula (const Grid*, const Cell*, const uint32_t);
 
 static Cell* update_cell (const Spread*, const Grid*);
-static void run_cell (const Spread*, Cell*);
+static void evaluate_cell (const Spread*, Cell*);
 
 int main (void)
 {
@@ -116,6 +116,12 @@ static void get_column_name (char* name, const uint32_t at)
         return;
     }
 
+    /* 25 are the number of letters in the alphabet
+     * so do not think this is magic number it only
+     * computes the number of times that 'at' have
+     * completed the alphabet, cannot divide by 25
+     * since it will skip Z.
+     * */
     const uint32_t nth_time = at / 26;
     name[0] = nth_time + 'A' - 1;
     name[1] = 'A' + (at - 26 * nth_time);
@@ -140,7 +146,7 @@ static void start_moving (Spread* spread)
 
     while ((K = getch()) != KEY_F(1)) {
         if (IS_IT_ENTER(K)) {
-            run_cell(spread, cc);
+            evaluate_cell(spread, cc);
             mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", Bsleft, Bsleft, (cc->type == cell_is_errr) ? cc->as_error : ":)");
         }
 
@@ -151,12 +157,10 @@ static void start_moving (Spread* spread)
 
         else if (isprint(K) && (cc->nth_ch < DEBUT_CELL_LENGTH)) {
             cc->data[cc->nth_ch++] = K;
-            // cc->modified = true;
         }
 
         else if (IS_IT_BCKSP(K) && cc->nth_ch) {
             cc->data[--cc->nth_ch] = 0;
-            // cc->modified = true;
         }
 
         update_formula(grid, cc, Bsleft);
@@ -198,7 +202,7 @@ static Cell* update_cell (const Spread* spread, const Grid* grid)
  * pressed this function is call and all the lexer
  * and parser stuff will be done.
  * */
-static void run_cell (const Spread* spread, Cell* cc)
+static void evaluate_cell (const Spread* spread, Cell* cc)
 {
     static const uint32_t printwidth = DEBUT_CELL_WIDTH - 1;
 
