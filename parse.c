@@ -114,10 +114,14 @@ static void deal_with_operators (Cell* cc, SimplerFx* sFx, Token* token)
     }
 
     if (type == token_is_ripr) {
-        if (!within_pars) parse_set_error(cc, SET_ERROR_MISSING_LEFT_PAR, token->byte_definition);
-        else within_pars--;
+        if (!within_pars) { parse_set_error(cc, SET_ERROR_MISSING_LEFT_PAR, token->byte_definition); return; }
 
         // TODO
+
+        while (sFx->fx[--sFx->nth_operator].type != token_is_lfpr)
+            memcpy(&sFx->fx[sFx->nth_operand++], &sFx->fx[sFx->nth_operator], sizeof(Token));
+
+        within_pars--;
         return;
     }
 

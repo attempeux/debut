@@ -5,8 +5,8 @@
 #include <stdarg.h>
 
 #define SET_ERROR_MAX_CAPACITY      0
-#define SET_ERROR_UNKNOWN_SYM       1
-#define SET_ERROR_MISSING_LEFT_PAR  2
+#define SET_ERROR_UNKNOWN_SYM       1 // TODO: CHECK
+#define SET_ERROR_MISSING_LEFT_PAR  2 // TODO: CHECK
 
 void parse_set_error (Cell*, uint16_t, ...);
 void parse_eval_expr (const Spread*, Cell*);
