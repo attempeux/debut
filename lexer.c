@@ -1,19 +1,14 @@
 #include "lexer.h"
-#include <stdio.h>
 #include <ctype.h>
-#include <stdarg.h>
 
 #define IS_IT_CONSTANT(a)       ((a == token_is_numb) || (a == token_is_word))
 #define IS_IT_LIT_TOKEN(a)      (IS_IT_CONSTANT(a)    || (a == token_is_refc))
 #define IS_IT_FORMULA(a)        ((a == token_is_dolr) || (a == token_is_qust))
 
-#define ERROR_MAX_CAPACITY      0
-
 static TokenType find_type_of (const char);
 static void get_literal (const char*, uint16_t*, Token*);
 
 static uint16_t get_function (const char*, const uint16_t, Token*);
-static void set_error_on_cc (Cell*, const uint16_t, ...);
 
 void lexer_lex (const Spread* spread, Cell* cc)
 {
@@ -40,10 +35,7 @@ void lexer_lex (const Spread* spread, Cell* cc)
         else if (token.type == token_is_func)
             i += get_function(cc->as_formula + i, cc->nth_fx_ch - i, &token);
 
-        /* If the very first token is a constant one, it
-         * means no formula it is gonna be applied here.
-         *
-         * If the first token is nor constant nor formula
+        /* If the first token is constant or non-formula
          * token there is not reason to keep getting tokens
          * since the cell is just plain text.
          * */
@@ -61,25 +53,31 @@ void lexer_lex (const Spread* spread, Cell* cc)
         }
 
         if (fx->nth_token == DEBUT_CELL_TOKEN_CAP) {
-            set_error_on_cc(cc, ERROR_MAX_CAPACITY, DEBUT_CELL_TOKEN_CAP);
+            parse_set_error(cc, SET_ERROR_MAX_CAPACITY, DEBUT_CELL_TOKEN_CAP);
             return;
         }
 
         memcpy(&fx->tokens[fx->nth_token++], &token, sizeof(Token));
     }
+
+    parse_eval_expr(spread, cc);
 }
 
 static TokenType find_type_of (const char a)
 {
     switch (a) {
-        case '@': case '&':
-        case ',': case '+':
-        case '*': case '/':
-        case '%': case '$':
-        case '?': case '(':
-        case ')': case '{':
-        case '}': case '-':
-            return a;
+        case '@': return token_is_func;
+        case '&': return token_is_refc;
+        case ',': return token_is_cmma;
+        case '+': return token_is_plus;
+        case '*': return token_is_tims;
+        case '/': return token_is_dvsn;
+        case '%': return token_is_modd;
+        case '$': return token_is_dolr;
+        case '?': return token_is_qust;
+        case '(': return token_is_lfpr;
+        case ')': return token_is_ripr;
+        case '-': return token_is_mins;
     }
 
     return isdigit(a) ? token_is_numb : token_is_word;
@@ -142,20 +140,3 @@ static uint16_t get_function (const char* src, const uint16_t left, Token* t)
     t->type = token_is_unkn;
     return 0;
 }
-
-static void set_error_on_cc (Cell* cc, const uint16_t err, ...)
-{
-    va_list args;
-    va_start(args, err);
-
-    static const char* errfmts[] = {
-        "maximum token capacity; which is %d Tokens.",
-    };
-
-    /* 8 since there are 7 characters plus \0 byte; NO MAGIC NUMBERS!!! */
-    snprintf(cc->as.text, 8, "!#ERROR");
-    vsnprintf(cc->as_error, DEBUT_CELL_ERROR_LEN, errfmts[err], args);
-    cc->type = cell_is_errr;
-    va_end(args);
-}
-

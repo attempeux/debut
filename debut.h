@@ -17,34 +17,34 @@
 #define DEBUT_WRT_FM_AT         1, 4
 
 typedef enum TokenType {
-    token_is_unkn = 0,
-    token_is_word = 1,
-    token_is_numb = 2,
-    token_is_sqrt = 3,
-    token_is_coss = 4,
-    token_is_sinn = 5,
-    token_is_acos = 6,
-    token_is_asin = 7,
-    token_is_atan = 8,
-    token_is_minn = 9,
-    token_is_maxx = 10,
-    token_is_eulr = 11,
-    token_is_pi   = 12,
+    token_is_unkn,
+    token_is_word,
+    token_is_numb,
+    token_is_refc,
 
-    token_is_func = '@',
-    token_is_refc = '&',
-    token_is_cmma = ',',
-    token_is_mins = '-',
-    token_is_plus = '+',
-    token_is_tims = '*',
-    token_is_dvsn = '/',
-    token_is_modd = '%',
-    token_is_dolr = '$',
-    token_is_qust = '?',
-    token_is_lfpr = '(',
-    token_is_ripr = ')',
-    token_is_lfbr = '{',
-    token_is_ribr = '}',
+    token_is_func,
+    token_is_sqrt,
+    token_is_coss,
+    token_is_sinn,
+    token_is_acos,
+    token_is_asin,
+    token_is_atan,
+    token_is_minn,
+    token_is_maxx,
+    token_is_eulr,
+    token_is_pi,
+
+    token_is_dolr,
+    token_is_qust,
+
+    token_is_cmma,
+    token_is_mins,
+    token_is_plus,
+    token_is_tims,
+    token_is_dvsn,
+    token_is_modd,
+    token_is_lfpr,
+    token_is_ripr,
 } TokenType;
 
 typedef enum CellType {
@@ -90,7 +90,6 @@ typedef struct Grid {
     uint32_t ncolumns, nrows;                       /* How many columns and rows are available. */
     uint32_t left_padding;                          /* Number of bytes used to print the rows number column. */
     uint32_t c_row, c_col;                          /* Number of row and column as the user moves around. */
-    uint16_t cw;                                    /* Cell widht. */
 } Grid;
 
 typedef struct Spread {

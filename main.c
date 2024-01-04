@@ -46,7 +46,7 @@ static void init_grid (void)
     start_color();
 
     init_color(COLOR_BLACK, 0, 0, 0);
-    init_color(COLOR_MAGENTA, 218, 132, 245);
+    init_color(COLOR_MAGENTA, 890, 420, 470);
 
     init_pair(1, COLOR_BLACK, COLOR_MAGENTA);
     init_pair(2, COLOR_MAGENTA, COLOR_BLACK);
@@ -210,7 +210,7 @@ static void evaluate_cell (const Spread* spread, Cell* cc)
 
     if (cc->type == cell_is_numb)
         printw("%*.*g", printwidth, maxndigits, cc->as.number);
-    else if (cc->type == cell_is_text)
+    else
         printw("%-*.*s", printwidth, printwidth, cc->as.text);
 
     attron(COLOR_PAIR(1));
