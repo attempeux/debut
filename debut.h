@@ -57,7 +57,7 @@ typedef enum CellType {
 typedef struct Token {
     union {
         void*  reference;                           /* This is actually a Cell pointer. */
-        char*  word;
+        char*  word;                                // XXX: MAY NO LONGER USED?
         double number;
     } as;                                           /* Different literal values a token can be. */
     uint16_t length_as_word;                        /* Length of the word in case the token is type word. */
@@ -66,8 +66,9 @@ typedef struct Token {
 } Token;
 
 typedef struct Formula {
-    Token tokens[DEBUT_CELL_TOKEN_CAP];
-    uint16_t nth_token;
+    Token tokens[DEBUT_CELL_TOKEN_CAP];             /* Formula to be applied. */
+    uint16_t nth_token;                             /* Number of tokens. */
+    TokenType performs;                             /* It only marks either token_is_dolr if it does math, token_is_qust if conditional. */
 } Formula;
 
 typedef struct Cell {
