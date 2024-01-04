@@ -17,11 +17,11 @@ static const struct {
     uint16_t precedence;
     void* (*fx) (const void*, const void*);
 } Ops[] = {
-    {'-', NULL},
-    {'+', NULL},
-    {'*', NULL},
-    {'/', NULL},
-    {'%', NULL},
+    {1, NULL},
+    {1, NULL},
+    {2, NULL},
+    {2, NULL},
+    {2, NULL},
 };
 
 static void deal_with_operators (Cell*, SimplerFx*, Token*);
@@ -130,5 +130,5 @@ static void rewrite_original_formula_and_solve (Cell* cc, SimplerFx* sFx)
         }
     }
 
-    fprintf(stderr, "\nOK!");
+    fprintf(stderr, "\nOK!\n");
 }

@@ -57,6 +57,7 @@ void lexer_lex (const Spread* spread, Cell* cc)
             return;
         }
 
+        fprintf(stderr, "Token: %d\n", token.type);
         memcpy(&fx->tokens[fx->nth_token++], &token, sizeof(Token));
     }
 
@@ -91,6 +92,7 @@ static void get_literal (const char* src, uint16_t* pos, Token* token)
     const uint16_t prev_pos = *pos;
     do { *pos += 1; } while (fx(src[*pos]));
 
+    *pos -= 1;
     switch (token->type) {
         case token_is_word: {
             token->as.word = (char*) src + prev_pos;
