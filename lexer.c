@@ -57,7 +57,6 @@ void lexer_lex (const Spread* spread, Cell* cc)
             return;
         }
 
-        fprintf(stderr, "Token: %d\n", token.type);
         memcpy(&fx->tokens[fx->nth_token++], &token, sizeof(Token));
     }
 

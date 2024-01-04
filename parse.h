@@ -10,5 +10,6 @@
 
 void parse_set_error (Cell*, uint16_t, ...);
 void parse_eval_expr (const Spread*, Cell*);
+void update_ou_solve (Cell*);
 
 #endif

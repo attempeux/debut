@@ -1,7 +1,8 @@
 #include "parse.h"
 
-#define OPERATORS_STARTS_AT  DEBUT_CELL_TOKEN_CAP / 2
-#define IS_VALID_SYMBOL(a)   ((a >= token_is_mins) && (a <= token_is_modd))
+#define IS_VALID_SYMBOL(a)      ((a >= token_is_mins) && (a <= token_is_modd))
+#define OPERATORS_STARTS_AT     DEBUT_CELL_TOKEN_CAP / 2
+#define NUMBER_STACK_SIZE       16
 
 /* Since the formulas are given in a hard way to evaluate such as: 4 + 21 * 3 the program
  * does not really know and does not care the order they must be performed but we do, so
@@ -13,21 +14,26 @@ typedef struct SimplerFx {
     uint16_t nth_operand, nth_operator;
 } SimplerFx;
 
+static double fx_sub (const double a, const double b) { return a - b; }
+static double fx_add (const double a, const double b) { return a + b; }
+static double fx_mul (const double a, const double b) { return a * b; }
+static double fx_div (const double a, const double b) { return a / b; }
+
 static const struct {
     uint16_t precedence;
-    void* (*fx) (const void*, const void*);
+    double (*eval_math) (const double, const double);
 } Ops[] = {
-    {1, NULL},
-    {1, NULL},
-    {2, NULL},
-    {2, NULL},
+    {1, fx_sub},
+    {1, fx_add},
+    {2, fx_mul},
+    {2, fx_div},
     {2, NULL},
 };
 
 static void deal_with_operators (Cell*, SimplerFx*, Token*);
 static bool perform_exchage (const TokenType, const TokenType);
 
-static void rewrite_original_formula_and_solve (Cell*, SimplerFx*);
+static void rewrite_original_formula (Cell*, SimplerFx*);
 
 void parse_set_error (Cell* cc, uint16_t err, ...)
 {
@@ -63,8 +69,37 @@ void parse_eval_expr (const Spread* spread, Cell* cc)
             deal_with_operators(cc, &sFx, token);
     }
 
-    rewrite_original_formula_and_solve(cc, &sFx);
-    // TODO: set to zeros sFx
+    rewrite_original_formula(cc, &sFx);
+    update_ou_solve(cc);
+
+    memset(&sFx, 0, sizeof(SimplerFx));
+    sFx.nth_operator = OPERATORS_STARTS_AT;
+}
+
+void update_ou_solve (Cell* cc) // NOT ONLY MATH
+{
+    Formula* fx = &cc->fx;
+
+    uint16_t nth_num = 0;
+    double numberstack[NUMBER_STACK_SIZE] = {0};
+
+    for (uint16_t i = 0; i < fx->nth_token; i++) {
+        Token* token = &fx->tokens[i];
+
+        if (token->type == token_is_numb) {
+            numberstack[nth_num++] = token->as.number;
+        }
+        else {
+            // CHECK IT IS ALWAYS GREATER THAN 2
+            numberstack[nth_num - 2] = Ops[token->type - token_is_mins].eval_math(
+                numberstack[nth_num - 2],
+                numberstack[nth_num - 1]
+            );
+            nth_num--;
+        }
+    }
+
+    fprintf(stderr, "\nANS: %f\n", numberstack[0]);
 }
 
 static void deal_with_operators (Cell* cc, SimplerFx* sFx, Token* token)
@@ -108,7 +143,7 @@ static bool perform_exchage (const TokenType a, const TokenType b)
     return Ops[a - token_is_mins].precedence <= Ops[b - token_is_mins].precedence;
 }
 
-static void rewrite_original_formula_and_solve (Cell* cc, SimplerFx* sFx)
+static void rewrite_original_formula (Cell* cc, SimplerFx* sFx)
 {
     do {
         --sFx->nth_operator;
@@ -118,17 +153,4 @@ static void rewrite_original_formula_and_solve (Cell* cc, SimplerFx* sFx)
     Formula* fx = &cc->fx;
     memcpy(&fx->tokens, &sFx->fx, sizeof(Token) * DEBUT_CELL_TOKEN_CAP);
     fx->nth_token = sFx->nth_operand;
-
-    for (uint16_t i = 0; i < fx->nth_token; i++) {
-        Token* token = &fx->tokens[i];
-
-        if (token->type == token_is_numb) {
-            fprintf(stderr, "%f ", token->as.number);
-        }
-        else {
-            fprintf(stderr, "%d ", token->type);
-        }
-    }
-
-    fprintf(stderr, "\nOK!\n");
 }
