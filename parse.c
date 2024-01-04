@@ -2,7 +2,8 @@
 #include <math.h>
 
 #define IS_VALID_SYMBOL(a)      ((a >= token_is_mins) && (a <= token_is_modd))
-#define OPERATORS_STARTS_AT     DEBUT_CELL_TOKEN_CAP / 2
+#define OPERATORS_STARTS_AT     DEBUT_CELL_TOKEN_CAP - 1
+#define OPERATORS_CAPACITY      DEBUT_CELL_TOKEN_CAP / 2
 #define NUMBER_STACK_SIZE       16
 
 /* Since the formulas are given in a hard way to evaluate such as: 4 + 21 * 3 the program
@@ -87,19 +88,13 @@ void update_ou_solve (Cell* cc)
     uint16_t nth_num = 0;
     double numberstack[NUMBER_STACK_SIZE] = {0};
 
-    char* aa = "-+*/*%";
-
-    fprintf(stdout, "len: %d\n", fx->nth_token);
-
     for (uint16_t i = 0; i < fx->nth_token; i++) {
         Token* token = &fx->tokens[i];
 
         if (token->type == token_is_numb) {
-            fprintf(stderr, "%f ", token->as.number);
             numberstack[nth_num++] = token->as.number;
         }
         else {
-            fprintf(stderr, "%c ", aa[token->type - token_is_mins]);
             // CHECK IT IS ALWAYS GREATER THAN 2
             numberstack[nth_num - 2] = Ops[token->type - token_is_mins].eval(
                 numberstack[nth_num - 2],
@@ -108,8 +103,6 @@ void update_ou_solve (Cell* cc)
             nth_num--;
         }
     }
-
-    fprintf(stderr, "\n");
 
     cc->as.number = numberstack[0];
     cc->type = cell_is_numb;
@@ -122,13 +115,13 @@ static void deal_with_operators (Cell* cc, SimplerFx* sFx, Token* token)
 
     if (type == token_is_lfpr) {
         within_pars++;
-        memcpy(&sFx->fx[sFx->nth_operator++], token, sizeof(Token));
+        memcpy(&sFx->fx[sFx->nth_operator--], token, sizeof(Token));
         return;
     }
 
     if (type == token_is_ripr) {
         if (within_pars) {
-            while (sFx->fx[--sFx->nth_operator].type != token_is_lfpr)
+            while (sFx->fx[++sFx->nth_operator].type != token_is_lfpr)
                 memcpy(&sFx->fx[sFx->nth_operand++], &sFx->fx[sFx->nth_operator], sizeof(Token));
             within_pars--;
         }
@@ -142,16 +135,16 @@ static void deal_with_operators (Cell* cc, SimplerFx* sFx, Token* token)
         return;
     }
 
-    while (!within_pars && (sFx->nth_operator > OPERATORS_STARTS_AT)) {
-        Token *prev = &sFx->fx[sFx->nth_operator - 1];
-        if (!perform_exchage(token->type, prev->type))
+    while (!within_pars && (sFx->nth_operator < OPERATORS_STARTS_AT)) {
+        Token *top = &sFx->fx[sFx->nth_operator + 1];
+        if (!perform_exchage(token->type, top->type))
             break;
 
-        memcpy(&sFx->fx[sFx->nth_operand++], prev, sizeof(Token));
-        sFx->nth_operator--;
+        memcpy(&sFx->fx[sFx->nth_operand++], top, sizeof(Token));
+        sFx->nth_operator++;
     }
 
-    memcpy(&sFx->fx[sFx->nth_operator++], token, sizeof(Token));
+    memcpy(&sFx->fx[sFx->nth_operator--], token, sizeof(Token));
 }
 
 static bool perform_exchage (const TokenType a, const TokenType b)
@@ -161,8 +154,9 @@ static bool perform_exchage (const TokenType a, const TokenType b)
 
 static void rewrite_original_formula (Cell* cc, SimplerFx* sFx)
 {
-    const uint16_t remainder = sFx->nth_operator - OPERATORS_STARTS_AT;
-    memcpy(&sFx->fx[sFx->nth_operand], &sFx->fx[OPERATORS_STARTS_AT], remainder * sizeof(Token));
+    const uint16_t remainder = OPERATORS_STARTS_AT - sFx->nth_operator;
+
+    memcpy(&sFx->fx[sFx->nth_operand], &sFx->fx[sFx->nth_operator + 1], remainder * sizeof(Token));
     sFx->nth_operand += remainder;
 
     Formula* fx = &cc->fx;
