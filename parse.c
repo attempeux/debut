@@ -27,6 +27,8 @@ static const struct {
 static void deal_with_operators (Cell*, SimplerFx*, Token*);
 static bool perform_exchage (const TokenType, const TokenType);
 
+static void rewrite_original_formula_and_solve (Cell*, SimplerFx*);
+
 void parse_set_error (Cell* cc, uint16_t err, ...)
 {
     va_list args;
@@ -52,15 +54,18 @@ void parse_eval_expr (const Spread* spread, Cell* cc)
     };
 
     Formula* fx = &cc->fx;
-
     for (uint16_t i = 1; i < fx->nth_token; i++) {
         Token* token = &fx->tokens[i];
         
         if (token->type == token_is_numb)
             memcpy(&sFx.fx[sFx.nth_operand++], token, sizeof(Token));
+        else
+            deal_with_operators(cc, &sFx, token);
     }
-}
 
+    rewrite_original_formula_and_solve(cc, &sFx);
+    // TODO: set to zeros sFx
+}
 
 static void deal_with_operators (Cell* cc, SimplerFx* sFx, Token* token)
 {
@@ -101,4 +106,29 @@ static void deal_with_operators (Cell* cc, SimplerFx* sFx, Token* token)
 static bool perform_exchage (const TokenType a, const TokenType b)
 {
     return Ops[a - token_is_mins].precedence <= Ops[b - token_is_mins].precedence;
+}
+
+static void rewrite_original_formula_and_solve (Cell* cc, SimplerFx* sFx)
+{
+    do {
+        --sFx->nth_operator;
+        memcpy(&sFx->fx[sFx->nth_operand++], &sFx->fx[sFx->nth_operator], sizeof(Token));
+    } while (sFx->nth_operator > OPERATORS_STARTS_AT);
+
+    Formula* fx = &cc->fx;
+    memcpy(&fx->tokens, &sFx->fx, sizeof(Token) * DEBUT_CELL_TOKEN_CAP);
+    fx->nth_token = sFx->nth_operand;
+
+    for (uint16_t i = 0; i < fx->nth_token; i++) {
+        Token* token = &fx->tokens[i];
+
+        if (token->type == token_is_numb) {
+            fprintf(stderr, "%f ", token->as.number);
+        }
+        else {
+            fprintf(stderr, "%d ", token->type);
+        }
+    }
+
+    fprintf(stderr, "\nOK!");
 }
