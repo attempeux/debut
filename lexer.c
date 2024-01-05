@@ -1,10 +1,6 @@
 #include "lexer.h"
 #include <ctype.h>
 
-#define IS_IT_CONSTANT(a)       ((a == token_is_numb) || (a == token_is_word))
-#define IS_IT_LIT_TOKEN(a)      (IS_IT_CONSTANT(a)    || (a == token_is_refc))
-#define IS_IT_FORMULA(a)        ((a == token_is_dolr) || (a == token_is_qust))
-
 static TokenType find_type_of (const char);
 static void get_literal (const char*, uint16_t*, Token*);
 
@@ -24,11 +20,7 @@ void lexer_lex (const Spread* spread, Cell* cc)
     for (uint16_t i = 0; i < cc->nth_fx_ch; i++) {
         const char a = cc->as_formula[i];
         if (isspace(a)) continue;
-
-        Token token = {
-            .as.word = cc->as_formula + i,
-            .type    = find_type_of(a)
-        };
+        Token token = { .type = find_type_of(a) };
 
         if (IS_IT_LIT_TOKEN(token.type))
             get_literal(cc->as_formula, &i, &token);
@@ -42,7 +34,7 @@ void lexer_lex (const Spread* spread, Cell* cc)
          * */
         if (!fx->nth_token && (IS_IT_CONSTANT(token.type) || !IS_IT_FORMULA(token.type))) {
             if (token.type != token_is_numb) {
-                snprintf(cc->as.text, cc->nth_fx_ch + 1, "%.*s", DEBUT_CELL_VALUE_LEN, cc->as_formula);
+                cc->as.text = cc->as_formula;
                 cc->type = cell_is_text;
             }
             else {
@@ -61,6 +53,7 @@ void lexer_lex (const Spread* spread, Cell* cc)
         memcpy(&fx->tokens[fx->nth_token++], &token, sizeof(Token));
     }
 
+    parse_solve_cell(cc);
 }
 
 static TokenType find_type_of (const char a)
@@ -85,27 +78,21 @@ static TokenType find_type_of (const char a)
 
 static void get_literal (const char* src, uint16_t* pos, Token* token)
 {
+    const TokenType what_is_it = token->type;
+
     typedef int (*defines) (const int);
-    defines fx = (token->type == token_is_numb) ? isdigit : isalnum;
+    defines fx = (what_is_it == token_is_numb) ? isdigit : isalnum;
 
     const uint16_t prev_pos = *pos;
     do { *pos += 1; } while (fx(src[*pos]));
 
     *pos -= 1;
-    switch (token->type) {
-        case token_is_word: {
-            token->as.word = (char*) src + prev_pos;
-            token->length_as_word = *pos - prev_pos;
-            return;
-        }
-
-        case token_is_numb: {
-            token->as.number = strtod(src + prev_pos, NULL);
-            return;
-        }
-
-        default: { assert("NO YET"); }
+    if (what_is_it == token_is_numb) {
+        token->as.number = strtod(src + prev_pos, NULL);
+        return;
     }
+
+    // TODO: Get references
 }
 
 typedef struct SpreadFunction {
@@ -139,5 +126,18 @@ static uint16_t get_function (const char* src, const uint16_t left, Token* t)
     }
 
     t->type = token_is_unkn;
+    return 0;
+}
+
+int main () {
+    Cell cell;
+
+    char* content = "$3 + 5 + 8";
+    size_t siz = strlen(content);
+    cell.nth_fx_ch = (uint16_t) siz;
+
+    snprintf(cell.as_formula, siz + 1, "%s", content);
+    lexer_lex(NULL, &cell);
+
     return 0;
 }

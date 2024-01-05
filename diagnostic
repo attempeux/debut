@@ -1,1 +1,48 @@
-4.000000 3.000000 + 3.000000 - 4.000000 - 5.000000 - 
+$ 3 + 5 + 8
+R1: 4
+OP: +
+R2: 2
+RETURN NODE (A)
+
+R1: A
+OP: +
+R2: 8
+RETURN NODE (B)
+
+
+$ (4 + (3 - 2)) * 3
+
+R1: 4
+OP: +
+R2: eval sub-expr
+    R1: 3
+    OP: -
+    R2: 2
+
+       *
+   +P       3
+ 4    -P
+    3    2
+
+
+$(4 + 3 + 2 + 1) * 5
+
+
+R1: 4
+OP: +
+R2: 3
+RETURN CURRENT NODE (A)
+
+R1: A
+OP: +
+R2: 2
+RETURN CURRENT NODE (B)
+
+R1: B
+OP: +
+R2: 1
+RETURN CURRENT NODE (C)
+
+R1: C
+OP: *
+R2: 5

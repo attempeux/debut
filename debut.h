@@ -11,7 +11,6 @@
 #define DEBUT_CELL_TOKEN_CAP    128             /* Maximum number of tokens per cell. */
 #define DEBUT_CELL_FORMULA_LEN  256             /* Maximum number of characters while writing the formula. */
 #define DEBUT_CELL_ERROR_LEN    64              /* Maximum number of characters to write an error. */
-#define DEBUT_CELL_VALUE_LEN    64              /* Maximum number of characters to write the answer of a cell. */
 
 #define DEBUT_WRT_CC_AT         0, 4
 #define DEBUT_WRT_FM_AT         1, 4
@@ -56,13 +55,10 @@ typedef enum CellType {
 
 typedef struct Token {
     union {
-        void*  reference;                           /* This is actually a Cell pointer. */
-        char*  word;                                // XXX: MAY NO LONGER USED? (?)
-        double number;
-    } as;                                           /* Different literal values a token can be. */
-    uint16_t length_as_word;                        /* Length of the word in case the token is type word. (?) */
-    uint16_t byte_definition;                       /* Position in the formula where the byte was defined. (?) */
-    TokenType type;
+        long double number;                         /* Value if the token is a number. */
+        void*  reference;                           /* Value if the token is a cell reference. */
+    } as;
+    TokenType type;                                 /* What the token is. */
 } Token;
 
 typedef struct Formula {
@@ -77,13 +73,12 @@ typedef struct Cell {
     char as_error[DEBUT_CELL_ERROR_LEN];
 
     union {
-        char text[DEBUT_CELL_VALUE_LEN];
-        double number;
+        long double number;
+        char* text;
     } as;
 
     uint16_t nth_fx_ch;
     CellType type;
-    bool solved;
 } Cell;
 
 typedef struct Grid {

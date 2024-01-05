@@ -19,7 +19,7 @@ static void update_formula (const Grid*, const Cell*, const uint32_t);
 static Cell* update_cell (const Spread*, const Grid*);
 static void evaluate_cell (const Spread*, Cell*);
 
-int main (void)
+int main___ (void)
 {
     Spread spread = {0};
     init_grid();
@@ -209,7 +209,7 @@ static void evaluate_cell (const Spread* spread, Cell* cc)
     lexer_lex(spread, cc);
 
     if (cc->type == cell_is_numb)
-        printw("%*.*g", printwidth, maxndigits, cc->as.number);
+        printw("%*.*Lg", printwidth, maxndigits, cc->as.number);
     else
         printw("%-*.*s", printwidth, printwidth, cc->as.text);
 
