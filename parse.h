@@ -4,8 +4,7 @@
 #include <stdio.h>              /* REMOVE WHEN NEEDED. */
 #include <stdarg.h>
 
-#define DEBUT_ERR_MAX_CAP_REACHED   0
-#define DEBUT_BAD_USE_OF_WORD_TYPE  1
+#define DEBUT_ERR_MAX_CAP_REACHED       0
 
 #define IS_IT_CONSTANT(a)       ((a == token_is_numb) || (a == token_is_word))
 #define IS_IT_LIT_TOKEN(a)      (IS_IT_CONSTANT(a)    || (a == token_is_refc))

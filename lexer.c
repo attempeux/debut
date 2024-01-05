@@ -129,10 +129,18 @@ static uint16_t get_function (const char* src, const uint16_t left, Token* t)
     return 0;
 }
 
-int main () {
+//
+// 3 + 3
+// 3 + 3 + 4 + 5
+// 3 + 2 + (4 + 3)
+// 4 + 2 + (2 + (3 + 1))
+// 5 + 3 + (3 + (2 + 1 + 1 + 1))
+// 5 + 4 + (1 + (1 + 2 + 3) + (3 + 2 + 1))
+
+int _main () {
     Cell cell;
 
-    char* content = "$3 * (4 + (5 + 7))";
+    char* content = "$1 + 2 + 3 + 4";
     size_t siz = strlen(content);
     cell.nth_fx_ch = (uint16_t) siz;
 

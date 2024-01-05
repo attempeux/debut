@@ -19,7 +19,7 @@ static void update_formula (const Grid*, const Cell*, const uint32_t);
 static Cell* update_cell (const Spread*, const Grid*);
 static void evaluate_cell (const Spread*, Cell*);
 
-int main___ (void)
+int main (void)
 {
     Spread spread = {0};
     init_grid();
