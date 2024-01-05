@@ -20,14 +20,15 @@ void lexer_lex (const Spread* spread, Cell* cc)
 
     Formula* fx   = &cc->fx;
     fx->nth_token = 0;
-    Token token   = {0};
 
     for (uint16_t i = 0; i < cc->nth_fx_ch; i++) {
         const char a = cc->as_formula[i];
         if (isspace(a)) continue;
 
-        token.as.word = cc->as_formula + i;
-        token.type    = find_type_of(a);
+        Token token = {
+            .as.word = cc->as_formula + i,
+            .type    = find_type_of(a)
+        };
 
         if (IS_IT_LIT_TOKEN(token.type))
             get_literal(cc->as_formula, &i, &token);
@@ -53,14 +54,13 @@ void lexer_lex (const Spread* spread, Cell* cc)
         }
 
         if (fx->nth_token == DEBUT_CELL_TOKEN_CAP) {
-            parse_set_error(cc, SET_ERROR_MAX_CAPACITY, DEBUT_CELL_TOKEN_CAP);
+            parse_set_error(cc, DEBUT_ERR_MAX_CAP_REACHED, DEBUT_CELL_TOKEN_CAP);
             return;
         }
 
         memcpy(&fx->tokens[fx->nth_token++], &token, sizeof(Token));
     }
 
-    parse_eval_expr(spread, cc);
 }
 
 static TokenType find_type_of (const char a)
@@ -122,8 +122,8 @@ static uint16_t get_function (const char* src, const uint16_t left, Token* t)
         {"@PI",   3, token_is_pi  },
         {"@Sin",  4, token_is_sinn},
         {"@Cos",  4, token_is_coss},
-        {"@Max",  4, token_is_coss},
-        {"@Min",  4, token_is_coss},
+        {"@Max",  4, token_is_maxx},
+        {"@Min",  4, token_is_minn},
         {"@ASin", 5, token_is_asin},
         {"@ACos", 5, token_is_acos},
         {"@ATan", 5, token_is_atan},

@@ -78,7 +78,7 @@ static void print_coords (Grid* grid)
     /* No magic numbers:
      * grid->nYbytes - 5, 5 since that is the number of rows used to display other kind of info.
      * grid->ncolumns < 650: 650 since that is the number you get when 26 * 25; that is the max number of columns.
-     * other numbers when move or mvprintw are used mean the position of some label.
+     * other numbers in move or mvprintw are used meaning the position of some label.
      * */
     grid->nrows = grid->nYbytes - 5;
     grid->left_padding = count_digits(grid->nYbytes) + 1;
@@ -147,7 +147,7 @@ static void start_moving (Spread* spread)
     while ((K = getch()) != KEY_F(1)) {
         if (IS_IT_ENTER(K)) {
             evaluate_cell(spread, cc);
-            mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", Bsleft, Bsleft, (cc->type == cell_is_errr) ? cc->as_error : ":)");
+            mvprintw(spread->grid.nYbytes - 1, 4, "%-*.*s", Bsleft, Bsleft, (!cc->type) ? cc->as_error : ":)"); // XXX: THIS WILL BE REPLACED BY A STACK.
         }
 
         else if ((K == KEY_UP) || (K == KEY_DOWN) || (K == KEY_LEFT) || (K == KEY_RIGHT)) {
@@ -197,7 +197,7 @@ static Cell* update_cell (const Spread* spread, const Grid* grid)
 }
 
 /* Once the cell has been completed and <enter> is
- * pressed this function is call and all the lexer
+ * pressed this function is called and all the lexer
  * and parser stuff will be done.
  * */
 static void evaluate_cell (const Spread* spread, Cell* cc)

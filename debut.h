@@ -48,8 +48,8 @@ typedef enum TokenType {
 } TokenType;
 
 typedef enum CellType {
+    cell_is_errr = 0,
     cell_is_empt,
-    cell_is_errr,
     cell_is_text,
     cell_is_numb
 } CellType;
@@ -57,11 +57,11 @@ typedef enum CellType {
 typedef struct Token {
     union {
         void*  reference;                           /* This is actually a Cell pointer. */
-        char*  word;                                // XXX: MAY NO LONGER USED?
+        char*  word;                                // XXX: MAY NO LONGER USED? (?)
         double number;
     } as;                                           /* Different literal values a token can be. */
-    uint16_t length_as_word;                        /* Length of the word in case the token is type word. */
-    uint16_t byte_definition;                       /* Position in the formula where the byte was defined. */
+    uint16_t length_as_word;                        /* Length of the word in case the token is type word. (?) */
+    uint16_t byte_definition;                       /* Position in the formula where the byte was defined. (?) */
     TokenType type;
 } Token;
 
@@ -77,8 +77,8 @@ typedef struct Cell {
     char as_error[DEBUT_CELL_ERROR_LEN];
 
     union {
-        double number;
         char text[DEBUT_CELL_VALUE_LEN];
+        double number;
     } as;
 
     uint16_t nth_fx_ch;
