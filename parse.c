@@ -92,9 +92,11 @@ void update_ou_solve (Cell* cc)
         Token* token = &fx->tokens[i];
 
         if (token->type == token_is_numb) {
+            fprintf(stderr, "%f ", token->as.number);
             numberstack[nth_num++] = token->as.number;
         }
-        else {
+        else if (nth_num) {
+            fprintf(stderr, "%c ", ("-+*/"[token->type - token_is_mins]));
             // CHECK IT IS ALWAYS GREATER THAN 2
             numberstack[nth_num - 2] = Ops[token->type - token_is_mins].eval(
                 numberstack[nth_num - 2],
@@ -104,6 +106,7 @@ void update_ou_solve (Cell* cc)
         }
     }
 
+    fprintf(stderr, "\n");
     cc->as.number = numberstack[0];
     cc->type = cell_is_numb;
 }
