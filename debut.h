@@ -64,6 +64,7 @@ typedef struct Token {
 typedef struct Formula {
     Token tokens[DEBUT_CELL_TOKEN_CAP];             /* Formula to be applied. */
     uint16_t nth_token;                             /* Number of tokens. */
+    uint16_t inspecting_n;                          /* Used to go through the tokens as the tree is being built. */
     TokenType performs;                             /* It only marks either token_is_dolr if it does math, token_is_qust if conditional. */
 } Formula;
 

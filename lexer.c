@@ -132,7 +132,7 @@ static uint16_t get_function (const char* src, const uint16_t left, Token* t)
 int main () {
     Cell cell;
 
-    char* content = "$3 + 5 + 8";
+    char* content = "$3 * (4 + (5 + 7))";
     size_t siz = strlen(content);
     cell.nth_fx_ch = (uint16_t) siz;
 
