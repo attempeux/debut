@@ -30,8 +30,7 @@ static void start (Spread*);
 static void move_cursor_to_current_cell (const WindInfo*);
 static void update_cells_capacity (Spread*);
 
-static void is_it_within_the_bounds (WindInfo*, const uint32_t);
-static void update_formula_label (Cell*, const uint16_t);
+static Cell* is_it_within_the_bounds (const Spread*, WindInfo*, const uint32_t);
 
 int main (void)
 {
@@ -161,9 +160,11 @@ static void start (Spread* spread)
             cuC->fx_txt[cuC->fxch++] = keypressed;
         }
         else if (DEBUT_MAIN_IS_ARROW_KEY(keypressed)) {
-            is_it_within_the_bounds(&spread->winf, keypressed);
-            move_cursor_to_current_cell(&spread->winf);
+            cuC = is_it_within_the_bounds(spread, &spread->winf, keypressed);
         }
+
+        mvprintw(1, 0, "%-*.*s", spread->winf.maxx, spread->winf.maxx, cuC->fx_txt); // %-*s?
+        move_cursor_to_current_cell(&spread->winf);
     }
 }
 
@@ -192,7 +193,7 @@ static void update_cells_capacity (Spread* spread)
     prevnCells = currnCells;
 }
 
-static void is_it_within_the_bounds (WindInfo* winf, const uint32_t kp)
+static Cell* is_it_within_the_bounds (const Spread* spread, WindInfo* winf, const uint32_t kp)
 {
     const uint16_t rowbound = winf->nRows - 1;
     const uint16_t colbound = winf->nCols - 1;
@@ -203,11 +204,8 @@ static void is_it_within_the_bounds (WindInfo* winf, const uint32_t kp)
         case KEY_DOWN:  winf->cur_row += (winf->cur_row < rowbound) ? 1 : 0; break;
         case KEY_RIGHT: winf->cur_col += (winf->cur_col < colbound) ? 1 : 0; break;
     }
-}
 
-static void update_formula_label (Cell* cuC, const uint16_t label_width)
-{
-    mvprintw(1, 0, "%-*.*s", label_width, label_width, cuC->fx_txt);
+    return &spread->cells[winf->cur_row * winf->nCols + winf->cur_col];
 }
 
 
