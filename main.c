@@ -21,6 +21,7 @@ static void refresh_grid (WindInfo*);
 static uint16_t number_of_digits (uint16_t);
 
 static void get_column_name (char*, const uint16_t);
+static void start (Spread*);
 
 int main (void)
 {
@@ -28,6 +29,7 @@ int main (void)
     init_window();
 
     refresh_labels(&spread.winf);
+    start(&spread);
 
     getch();
     endwin();
@@ -50,8 +52,13 @@ static void init_window (void)
     attron(COLOR_PAIR(1));
 }
 
+/* This function is called when the program is started
+ * and when the window is resized, it prints once again
+ * all the layout to fit with the new window size.
+ * */
 static void refresh_labels (WindInfo* winf)
 {
+    clear();
     getmaxyx(curscr, winf->maxy, winf->maxx);
     mvprintw(0, 0, "A0 (E): %*c", winf->maxx - 8, ' ');
     mvprintw(1, 0, "%*c", winf->maxx, ' ');
@@ -59,6 +66,7 @@ static void refresh_labels (WindInfo* winf)
     mvprintw(winf->maxy - 1, 0, "!ERRS: %*c", winf->maxx - 7, ' ');
 
     refresh_grid(winf);
+    refresh();
 }
 
 static void refresh_grid (WindInfo* winf)
@@ -115,3 +123,21 @@ static void get_column_name (char* name, const uint16_t a)
     name[0] = nthtime + 'A' - 1;
     name[1] = 'A' + (a - 26 * nthtime);
 }
+
+static void start (Spread* spread)
+{
+    keypad(curscr, TRUE);
+    curs_set(2);
+    move(4, spread->winf.leftpadding);
+
+    uint32_t keypressed;
+    while ((keypressed = wgetch(curscr)) != KEY_F(1)) {
+        switch (keypressed) {
+            case KEY_RESIZE: { refresh_labels(&spread->winf); break; }
+        }
+    }
+
+}
+
+
+
