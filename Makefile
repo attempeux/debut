@@ -1,8 +1,8 @@
-objs = main.o lexer.o parse.o
+objs = main.o
 flags = -Wall -Wextra -Wpedantic
 
 debut: $(objs)
-	gcc -o debut $(objs) -lncurses -lm
+	gcc -o debut $(objs) -lncurses
 
 %.o: %.c
 	gcc -c $(flags) $^
