@@ -129,14 +129,6 @@ static uint16_t get_function (const char* src, const uint16_t left, Token* t)
     return 0;
 }
 
-//
-// 3 + 3
-// 3 + 3 + 4 + 5
-// 3 + 2 + (4 + 3)
-// 4 + 2 + (2 + (3 + 1))
-// 5 + 3 + (3 + (2 + 1 + 1 + 1))
-// 5 + 4 + (1 + (1 + 2 + 3) + (3 + 2 + 1))
-
 int _main () {
     Cell cell;
 
