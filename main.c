@@ -151,7 +151,7 @@ static void start (Spread* spread)
             update_cells_capacity(spread);
         }
         else if (DEBUT_MAIN_IS_ENTER(keypressed)) {
-            fprintf(stderr, "content: %s\n", cuC->fx_txt);
+            fprintf(stderr, "content: (%d, %d): %s\n", spread->winf.cur_row, spread->winf.cur_col, cuC->fx_txt);
         }
         else if (DEBUT_MAIN_IS_BCKSPC(keypressed) && cuC->fxch) {
             cuC->fx_txt[--cuC->fxch] = 0;
@@ -163,7 +163,7 @@ static void start (Spread* spread)
             cuC = is_it_within_the_bounds(spread, &spread->winf, keypressed);
         }
 
-        mvprintw(1, 0, "%-*.*s", spread->winf.maxx, spread->winf.maxx, cuC->fx_txt); // %-*s?
+        mvprintw(1, 0, "%-*.*s", spread->winf.maxx, spread->winf.maxx, cuC->fx_txt);
         move_cursor_to_current_cell(&spread->winf);
     }
 }
