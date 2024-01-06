@@ -13,9 +13,10 @@
  * */
 #define DEBUT_MAIN_MAX_COLUMNS  650
 
-#define DEBUT_MAIN_CELL_WIDTH   10
-#define DEBUT_MAIN_IS_ENTER(a)  ((a == KEY_ENTER) || (a == '\r') || (a == '\n'))
-#define DEBUT_MAIN_IS_BCKSPC(a) ((a == KEY_BACKSPACE) || (a == '\b') || (a == 127))
+#define DEBUT_MAIN_CELL_WIDTH           10
+#define DEBUT_MAIN_IS_ENTER(a)          ((a == KEY_ENTER) || (a == '\r') || (a == '\n'))
+#define DEBUT_MAIN_IS_BCKSPC(a)         ((a == KEY_BACKSPACE) || (a == '\b') || (a == 127))
+#define DEBUT_MAIN_IS_ARROW_KEY(a)      ((a == KEY_UP) || (a == KEY_DOWN) || (a == KEY_LEFT) || (a == KEY_RIGHT))
 
 static void init_window (void);
 static void refresh_labels (WindInfo*);
@@ -26,7 +27,11 @@ static uint16_t number_of_digits (uint16_t);
 static void get_column_name (char*, const uint16_t);
 static void start (Spread*);
 
+static void move_cursor_to_current_cell (const WindInfo*);
 static void update_cells_capacity (Spread*);
+
+static void is_it_within_the_bounds (WindInfo*, const uint32_t);
+static void update_formula_label (Cell*, const uint16_t);
 
 int main (void)
 {
@@ -131,18 +136,19 @@ static void get_column_name (char* name, const uint16_t a)
 
 static void start (Spread* spread)
 {
-    keypad(curscr, TRUE);
-    move(4, spread->winf.leftpadding);
-
+    move_cursor_to_current_cell(&spread->winf);
+    keypad(stdscr, TRUE);
     curs_set(2);
+
     update_cells_capacity(spread);
 
     Cell* cuC = &spread->cells[0];
     uint32_t keypressed;
 
-    while ((keypressed = wgetch(curscr)) != KEY_F(1)) {
+    while ((keypressed = wgetch(stdscr)) != KEY_F(1)) {
         if (keypressed == KEY_RESIZE) {
             refresh_labels(&spread->winf);
+            move_cursor_to_current_cell(&spread->winf);
             update_cells_capacity(spread);
         }
         else if (DEBUT_MAIN_IS_ENTER(keypressed)) {
@@ -154,8 +160,16 @@ static void start (Spread* spread)
         else if (isprint(keypressed) && cuC->fxch < DEBUT_FORMULA_LENGTH) {
             cuC->fx_txt[cuC->fxch++] = keypressed;
         }
-
+        else if (DEBUT_MAIN_IS_ARROW_KEY(keypressed)) {
+            is_it_within_the_bounds(&spread->winf, keypressed);
+            move_cursor_to_current_cell(&spread->winf);
+        }
     }
+}
+
+static void move_cursor_to_current_cell (const WindInfo* winf)
+{
+    move(DEBUT_MAIN_UNUSED_ROWS - 1 + winf->cur_row, winf->leftpadding + DEBUT_MAIN_CELL_WIDTH * winf->cur_col);
 }
 
 static void update_cells_capacity (Spread* spread)
@@ -166,10 +180,35 @@ static void update_cells_capacity (Spread* spread)
     if (currnCells < prevnCells)
         return;
 
-    if (!(spread->cells = (Cell*) calloc(currnCells, sizeof(Cell)))) {
+    if (!spread->cells) {
+        spread->cells = (Cell*) calloc(currnCells, sizeof(Cell));
+    }
+
+    else if (!(spread->cells = (Cell*) realloc(spread->cells, currnCells))) {
         endwin();
         fprintf(stderr, "debut: error: no memory enough to hold %d cells :( use excel instead...\n", currnCells);
         exit(EXIT_FAILURE);
     }
     prevnCells = currnCells;
 }
+
+static void is_it_within_the_bounds (WindInfo* winf, const uint32_t kp)
+{
+    const uint16_t rowbound = winf->nRows - 1;
+    const uint16_t colbound = winf->nCols - 1;
+
+    switch (kp) {
+        case KEY_LEFT:  winf->cur_col += (winf->cur_col) ? -1 : 0; break;
+        case KEY_UP:    winf->cur_row += (winf->cur_row) ? -1 : 0; break;
+        case KEY_DOWN:  winf->cur_row += (winf->cur_row < rowbound) ? 1 : 0; break;
+        case KEY_RIGHT: winf->cur_col += (winf->cur_col < colbound) ? 1 : 0; break;
+    }
+}
+
+static void update_formula_label (Cell* cuC, const uint16_t label_width)
+{
+    mvprintw(1, 0, "%-*.*s", label_width, label_width, cuC->fx_txt);
+}
+
+
+

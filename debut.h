@@ -19,6 +19,7 @@ typedef enum CellKind {
 typedef struct WindInfo {
     uint16_t maxx, maxy;
     uint16_t nRows, nCols;
+    uint16_t cur_row, cur_col;
     uint16_t leftpadding;
 } WindInfo;
 
