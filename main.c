@@ -12,7 +12,10 @@
 /* This is the number of columns that takes reach the ZZ column.
  * */
 #define DEBUT_MAIN_MAX_COLUMNS  650
+
 #define DEBUT_MAIN_CELL_WIDTH   10
+#define DEBUT_MAIN_IS_ENTER(a)  ((a == KEY_ENTER) || (a == '\r') || (a == '\n'))
+#define DEBUT_MAIN_IS_BCKSPC(a) ((a == KEY_BACKSPACE) || (a == '\b') || (a == 127))
 
 static void init_window (void);
 static void refresh_labels (WindInfo*);
@@ -22,6 +25,8 @@ static uint16_t number_of_digits (uint16_t);
 
 static void get_column_name (char*, const uint16_t);
 static void start (Spread*);
+
+static void update_cells_capacity (Spread*);
 
 int main (void)
 {
@@ -127,17 +132,44 @@ static void get_column_name (char* name, const uint16_t a)
 static void start (Spread* spread)
 {
     keypad(curscr, TRUE);
-    curs_set(2);
     move(4, spread->winf.leftpadding);
 
-    uint32_t keypressed;
-    while ((keypressed = wgetch(curscr)) != KEY_F(1)) {
-        switch (keypressed) {
-            case KEY_RESIZE: { refresh_labels(&spread->winf); break; }
-        }
-    }
+    curs_set(2);
+    update_cells_capacity(spread);
 
+    Cell* cuC = &spread->cells[0];
+    uint32_t keypressed;
+
+    while ((keypressed = wgetch(curscr)) != KEY_F(1)) {
+        if (keypressed == KEY_RESIZE) {
+            refresh_labels(&spread->winf);
+            update_cells_capacity(spread);
+        }
+        else if (DEBUT_MAIN_IS_ENTER(keypressed)) {
+            fprintf(stderr, "content: %s\n", cuC->fx_txt);
+        }
+        else if (DEBUT_MAIN_IS_BCKSPC(keypressed) && cuC->fxch) {
+            cuC->fx_txt[--cuC->fxch] = 0;
+        }
+        else if (isprint(keypressed) && cuC->fxch < DEBUT_FORMULA_LENGTH) {
+            cuC->fx_txt[cuC->fxch++] = keypressed;
+        }
+
+    }
 }
 
+static void update_cells_capacity (Spread* spread)
+{
+    static uint32_t prevnCells = 0;
+    uint32_t currnCells = spread->winf.nRows * spread->winf.nCols;
 
+    if (currnCells < prevnCells)
+        return;
 
+    if (!(spread->cells = (Cell*) calloc(currnCells, sizeof(Cell)))) {
+        endwin();
+        fprintf(stderr, "debut: error: no memory enough to hold %d cells :( use excel instead...\n", currnCells);
+        exit(EXIT_FAILURE);
+    }
+    prevnCells = currnCells;
+}
