@@ -1,12 +1,12 @@
 #include "debut.h"
 #include <assert.h>
 #include <string.h>
-#include <errno.h>
 
 static TokenKind figure_out_kind (const char);
-
 static uint16_t get_string_literal (const char*, uint16_t*, const uint16_t);
-static long double get_number_literal (const char*, uint16_t*, const uint16_t);
+
+static long double get_number_literal (const char*, uint16_t*);
+static void* get_reference (const Spread*, const char*, uint16_t*);
 
 void lexer_lex (Spread* spread, Cell* cuC)
 {
@@ -22,13 +22,24 @@ void lexer_lex (Spread* spread, Cell* cuC)
         if (isspace(a)) continue;
 
         Token token = { .kind = figure_out_kind(a) };
-        if (token.kind == token_kind_number) {
-            printf("number: %Lf\n", get_number_literal(cuC->fx_txt, &i, len));
+
+        switch (token.kind) {
+            case token_kind_number:
+                token.as.number = get_number_literal(cuC->fx_txt, &i);
+                printf("Number: <%Lf>\n", token.as.number);
+                break;
+
+            case token_kind_string:
+                token.as.string  = cuC->fx_txt + i + 1;
+                token.len_as_str = get_string_literal(cuC->fx_txt, &i, len);
+                printf("String: <%.*s>\n", token.len_as_str, token.as.string);
+                break;
+
+            case token_kind_reference:
+                get_reference(spread, cuC->fx_txt, &i);
+                break;
         }
-        if (token.kind == token_kind_string) {
-            uint16_t a = i, ss = get_string_literal(cuC->fx_txt, &i, len);
-            printf("string: <%.*s> %d\n", ss, cuC->fx_txt + a + 1, ss);
-        }
+
 
     }
 }
@@ -66,25 +77,60 @@ static uint16_t get_string_literal (const char* src, uint16_t* pos, const uint16
         }
     } while (ch != '"' && *pos < len);
 
-    assert(ch == '"' && "incomplete string.");
+    if (ch != '"') {} // TODO: add error to the stack.
     return --token_length;
 }
 
-static long double get_number_literal (const char* src, uint16_t* pos, const uint16_t len)
+static long double get_number_literal (const char* src, uint16_t* pos)
 {
     char* init = (char*) &src[*pos], *final;
     long double a = strtold(src + *pos, &final);
-
-    if (errno) {
-        assert("ERROR");
-    }
 
     *pos += (uint16_t) (final - init);
     return a;
 }
 
+static void* get_reference (const Spread* spread, const char* src, uint16_t* pos)
+{
+    *pos += 1;
+    uint16_t Col = 0, Row = 0, Hilfsvariable = 0;
+    uint16_t colseg = (uint16_t) strcspn(src + *pos, "1234567890 ");
 
-#define TEXT "3345 3.34535 \"Hola como estas\" \"Bonjour\"34345'"
+    /* TODO: Add error to stack. */
+    if (!colseg) {
+        puts("no column name");
+        exit(1);
+    }
+
+    for (uint16_t i = 0; i < colseg; i++) {
+        Col += ((Hilfsvariable++) * 26) + (toupper(src[*pos]) - 'A');
+        *pos += 1;
+    } 
+
+    /* TODO: Add error to stack. */
+    if (!isdigit(src[*pos])) {
+        puts("no row number");
+        exit(1);
+    }
+
+    Row = atoi(src + *pos);
+    while (isdigit(src[*pos])) *pos += 1;
+
+    /* TODO: Add error to stack.
+     * @note: not available while testing:
+     * if (Row >= spread->winf.nRows || Col >= spread->winf.nCols) {
+     * puts("cell outta bounds");
+     * exit(1);
+     * }
+     * */
+
+    /* @note: not available while testing: &spread->cells[Row * spread->winf.nCols + Col]; */
+    printf("reference: (%d, %d)\n", Row, Col);
+    return NULL; 
+}
+
+
+#define TEXT "&A4 34"
 
 int main ()
 {
@@ -95,3 +141,4 @@ int main ()
     lexer_lex(NULL, &c);
     return 0;
 }
+

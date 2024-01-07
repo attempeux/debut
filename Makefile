@@ -1,5 +1,5 @@
 objs = main.o lexer.o
-flags = -Wall -Wextra -Wpedantic
+flags = -Wall -Wextra -Wpedantic -Wno-switch
 
 debut: $(objs)
 	gcc -o debut $(objs) -lncurses
