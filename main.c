@@ -1,4 +1,5 @@
 #include "debut.h"
+#include <ncurses.h>
 
 /* There are five rows that are not being used:
  * 1. Cell information.
@@ -32,7 +33,7 @@ static void update_cells_capacity (Spread*);
 
 static Cell* is_it_within_the_bounds (const Spread*, WindInfo*, const uint32_t);
 
-int main (void)
+int _main (void)
 {
     Spread spread = {0};
     init_window();

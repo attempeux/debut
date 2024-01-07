@@ -3,11 +3,10 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdint.h>
-#include <assert.h>
 #include <stdlib.h>
-#include <ncurses.h>
 
 #define DEBUT_FORMULA_LENGTH    512
+#define DEBUT_CELL_DATA_LENGTH  64
 
 typedef enum CellKind {
     cell_kind_error  = 0,
@@ -16,6 +15,20 @@ typedef enum CellKind {
     cell_kind_empty
 } CellKind;
 
+typedef enum TokenKind {
+    token_kind_unknown   = 0,
+    token_kind_number    = 1,
+    token_kind_string    = '"',
+    token_kind_reference = '&',
+    token_kind_lf_paren  = '(',
+    token_kind_rg_paren  = ')',
+    token_kind_function  = '@',
+    token_kind_add       = '+',
+    token_kind_sub       = '-',
+    token_kind_mul       = '*',
+    token_kind_div       = '/',
+} TokenKind;
+
 typedef struct WindInfo {
     uint16_t maxx, maxy;
     uint16_t nRows, nCols;
@@ -23,8 +36,24 @@ typedef struct WindInfo {
     uint16_t leftpadding;
 } WindInfo;
 
+typedef struct Token {
+    union {
+        long double number;
+        void* reference;
+        char* string;
+    } as;
+
+    uint16_t len_as_str;
+    TokenKind kind;
+} Token;
+
 typedef struct Cell {
     char fx_txt[DEBUT_FORMULA_LENGTH];
+    union {
+        char text[DEBUT_CELL_DATA_LENGTH];
+        long double number;
+    } as;
+
     uint16_t fxch;
     CellKind kind;
 } Cell;
