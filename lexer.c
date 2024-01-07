@@ -8,6 +8,8 @@ static uint16_t get_string_literal (const char*, uint16_t*, const uint16_t);
 static long double get_number_literal (const char*, uint16_t*);
 static void* get_reference (const Spread*, const char*, uint16_t*);
 
+static TokenKind get_function_kind (const char*, const uint16_t, uint16_t*);
+
 void lexer_lex (Spread* spread, Cell* cuC)
 {
     const uint16_t len = cuC->fxch;
@@ -16,6 +18,8 @@ void lexer_lex (Spread* spread, Cell* cuC)
         cuC->kind = cell_kind_empty;
         return;
     }
+
+    const char* fxs[] = {"sin", "cos", "asin", "acos", "atan", "sqrt", "pi", "e"};
 
     for (uint16_t i = 0; i < len; i++) {
         const char a = cuC->fx_txt[i];
@@ -36,10 +40,16 @@ void lexer_lex (Spread* spread, Cell* cuC)
                 break;
 
             case token_kind_reference:
-                get_reference(spread, cuC->fx_txt, &i);
+                token.as.reference = (Cell*) get_reference(spread, cuC->fx_txt, &i);
                 break;
-        }
 
+            case token_kind_function:
+                token.kind = get_function_kind(cuC->fx_txt + i, len, &i);
+                (token.kind) ? printf("function of: %s\n",  fxs[token.kind - 2]) : printf("uknown function\n");
+                break;
+
+            default: break;
+        }
 
     }
 }
@@ -77,7 +87,13 @@ static uint16_t get_string_literal (const char* src, uint16_t* pos, const uint16
         }
     } while (ch != '"' && *pos < len);
 
-    if (ch != '"') {} // TODO: add error to the stack.
+
+    /* TODO: Add error to stack. */
+    if (ch != '"') {
+        puts("no terminated string");
+        exit(1);
+    }
+
     return --token_length;
 }
 
@@ -92,7 +108,10 @@ static long double get_number_literal (const char* src, uint16_t* pos)
 
 static void* get_reference (const Spread* spread, const char* src, uint16_t* pos)
 {
+    /* Do not forget skip & character.
+     * */
     *pos += 1;
+
     uint16_t Col = 0, Row = 0, Hilfsvariable = 0;
     uint16_t colseg = (uint16_t) strcspn(src + *pos, "1234567890 ");
 
@@ -129,14 +148,47 @@ static void* get_reference (const Spread* spread, const char* src, uint16_t* pos
     return NULL; 
 }
 
+typedef struct MathFxs {
+    char* name;
+    uint16_t len;
+    TokenKind kind;
+} MathFxs;
 
-#define TEXT "&A4 34"
+static TokenKind get_function_kind (const char* src, const uint16_t maxlen, uint16_t *pos)
+{
+    static const uint16_t nfxs = 8;
+
+    static const MathFxs fxs[] = {
+        { .name = "@ASin", .len = 5, .kind = token_kind_asin},
+        { .name = "@ACos", .len = 5, .kind = token_kind_acos},
+        { .name = "@ATan", .len = 5, .kind = token_kind_atan},
+        { .name = "@Sqrt", .len = 5, .kind = token_kind_sqrt},
+        { .name = "@Sin",  .len = 4, .kind = token_kind_sin},
+        { .name = "@Cos",  .len = 4, .kind = token_kind_cos},
+        { .name = "@Pi",   .len = 3, .kind = token_kind_pi},
+        { .name = "@E",    .len = 2, .kind = token_kind_e}
+    };
+
+    for (uint16_t i = 0; i < nfxs; i++) {
+        const MathFxs* fx = &fxs[i];
+        const bool inbounds = (fx->len + (*pos)) < maxlen;
+
+        if (inbounds && !strncmp(fx->name, src, fx->len)) {
+            *pos += fx->len - 1;
+            return fx->kind;
+        }
+    }
+
+    return token_kind_unknown;
+}
+
+#define TEXT "&A4 34 4454 \"dwehfwkhfoiewh\" &AAAAA88 @Sin @Cos @Pi @E 33 @jskiwhd"
 
 int main ()
 {
     Cell c;
-    memcpy(&c.fx_txt, &TEXT, strlen(TEXT));
-    c.fxch = strlen(TEXT);
+    snprintf(c.fx_txt, strlen(TEXT) + 1, "%s", TEXT);
+    c.fxch = strlen(TEXT) + 1;
 
     lexer_lex(NULL, &c);
     return 0;

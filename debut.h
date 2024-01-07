@@ -2,8 +2,9 @@
 #define DEBUT_DEBUT_H
 #include <stdio.h>
 #include <ctype.h>
-#include <stdint.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #define DEBUT_FORMULA_LENGTH    512
 #define DEBUT_CELL_DATA_LENGTH  64
@@ -18,6 +19,15 @@ typedef enum CellKind {
 typedef enum TokenKind {
     token_kind_unknown   = 0,
     token_kind_number    = 1,
+    token_kind_sin       = 2,
+    token_kind_cos       = 3,
+    token_kind_asin      = 4,
+    token_kind_acos      = 5,
+    token_kind_atan      = 6,
+    token_kind_sqrt      = 7,
+    token_kind_pi        = 8,
+    token_kind_e         = 9,
+
     token_kind_string    = '"',
     token_kind_reference = '&',
     token_kind_lf_paren  = '(',
