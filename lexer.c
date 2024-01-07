@@ -48,9 +48,9 @@ void lexer_lex (Spread* spread, Cell* cuC)
                 (token.kind) ? printf("function of: %s\n",  fxs[token.kind - 2]) : printf("uknown function\n");
                 break;
 
-            default: break;
+            default:
+                break;
         }
-
     }
 }
 
@@ -59,7 +59,7 @@ static TokenKind figure_out_kind (const char a)
     switch (a) {
         case '"': case '&': case '(': case ')':
         case '@': case '+': case '-': case '*':
-        case '/': return a;
+        case '/': case '$': case '?': return a;
     }
 
     return isdigit(a) ? token_kind_number : token_kind_unknown;
@@ -108,8 +108,7 @@ static long double get_number_literal (const char* src, uint16_t* pos)
 
 static void* get_reference (const Spread* spread, const char* src, uint16_t* pos)
 {
-    /* Do not forget skip & character.
-     * */
+    /* Do not forget skip & character. */
     *pos += 1;
 
     uint16_t Col = 0, Row = 0, Hilfsvariable = 0;
@@ -171,7 +170,7 @@ static TokenKind get_function_kind (const char* src, const uint16_t maxlen, uint
 
     for (uint16_t i = 0; i < nfxs; i++) {
         const MathFxs* fx = &fxs[i];
-        const bool inbounds = (fx->len + (*pos)) < maxlen;
+        const bool inbounds = (fx->len + (*pos)) <= maxlen;
 
         if (inbounds && !strncmp(fx->name, src, fx->len)) {
             *pos += fx->len - 1;
@@ -182,13 +181,14 @@ static TokenKind get_function_kind (const char* src, const uint16_t maxlen, uint
     return token_kind_unknown;
 }
 
-#define TEXT "&A4 34 4454 \"dwehfwkhfoiewh\" &AAAAA88 @Sin @Cos @Pi @E 33 @jskiwhd"
+#define TEXT "&A4 34 4454 \"dwehfwkhfoiewh\" &AAAAA88 @Sin @Cos @Pi @E 33 @ATan @sdwre 24.343 3.4e3"
 
 int main ()
 {
-    Cell c;
-    snprintf(c.fx_txt, strlen(TEXT) + 1, "%s", TEXT);
-    c.fxch = strlen(TEXT) + 1;
+    Cell c = {0};
+    for (uint16_t i = 0; i < strlen(TEXT); i++) {
+        c.fx_txt[c.fxch++] = TEXT[i];
+    }
 
     lexer_lex(NULL, &c);
     return 0;

@@ -37,6 +37,8 @@ typedef enum TokenKind {
     token_kind_sub       = '-',
     token_kind_mul       = '*',
     token_kind_div       = '/',
+    token_kind_dollar    = '$',
+    token_kind_question  = '?',
 } TokenKind;
 
 typedef struct WindInfo {
