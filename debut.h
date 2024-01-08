@@ -50,6 +50,7 @@ typedef struct WindInfo {
     uint16_t nRows, nCols;
     uint16_t cur_row, cur_col;
     uint16_t leftpadding;
+    int16_t Epsilon;
 } WindInfo;
 
 typedef struct Token {
