@@ -150,7 +150,7 @@ static void start (Spread* spread)
     Cell* cuC = &spread->cells[0];
 
     /* Ba4pcc: stands for bytes available for printing cell content. */
-    uint32_t Ba4pcc = cuWinf->maxx - 4, keypressed;
+    uint32_t Ba4pcc = cuWinf->maxx - 5, keypressed;
 
     while ((keypressed = wgetch(stdscr)) != KEY_F(1)) {
 
@@ -159,7 +159,7 @@ static void start (Spread* spread)
             move_cursor_to_current_cell(cuWinf);
             update_cells_capacity(spread);
 
-            Ba4pcc = cuWinf->maxx - 4;
+            Ba4pcc = cuWinf->maxx - 5;
             cuC = is_it_within_the_bounds(spread, cuWinf, 0);
             continue;
         }
@@ -179,6 +179,10 @@ static void start (Spread* spread)
 
         else if (DEBUT_MAIN_IS_ARROW_KEY(keypressed)) {
             cuC = is_it_within_the_bounds(spread, cuWinf, keypressed);
+
+            char columname[3];
+            get_column_name(columname, cuWinf->cur_col);
+            mvprintw(0, 0, "%s%d: ", columname, cuWinf->cur_row);
         }
 
         mvprintw(1, 0, "%-*.*s", cuWinf->maxx, cuWinf->maxx, cuC->fx_txt);
@@ -244,3 +248,5 @@ static Cell* is_it_within_the_bounds (const Spread* spread, WindInfo* winf, cons
 
     return &spread->cells[cellat];
 }
+
+
