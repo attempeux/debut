@@ -1,6 +1,8 @@
 #include "debut.h"
-#include <assert.h>
-#include <string.h>
+
+#define DEBUT_LEXER_PERFORMSMTH(a)      ((a == token_kind_dollar) || (a == token_kind_question))
+
+static const char* fxs[] = {"sin", "cos", "asin", "acos", "atan", "sqrt", "pi", "e"}; /* @XXX: remove this when needed. */
 
 static TokenKind figure_out_kind (const char);
 static uint16_t get_string_literal (const char*, uint16_t*, const uint16_t);
@@ -19,7 +21,8 @@ void lexer_lex (Spread* spread, Cell* cuC)
         return;
     }
 
-    const char* fxs[] = {"sin", "cos", "asin", "acos", "atan", "sqrt", "pi", "e"};
+    Expression* expr = &cuC->expression;
+    expr->nth_token  = 0;
 
     for (uint16_t i = 0; i < len; i++) {
         const char a = cuC->fx_txt[i];
@@ -30,13 +33,13 @@ void lexer_lex (Spread* spread, Cell* cuC)
         switch (token.kind) {
             case token_kind_number:
                 token.as.number = get_number_literal(cuC->fx_txt, &i);
-                printf("Number: <%Lf>\n", token.as.number);
+                fprintf(stderr, "Number: <%Lf>\n", token.as.number);
                 break;
 
             case token_kind_string:
                 token.as.string  = cuC->fx_txt + i + 1;
                 token.len_as_str = get_string_literal(cuC->fx_txt, &i, len);
-                printf("String: <%.*s>\n", token.len_as_str, token.as.string);
+                fprintf(stderr, "String: <%.*s>\n", token.len_as_str, token.as.string);
                 break;
 
             case token_kind_reference:
@@ -45,11 +48,27 @@ void lexer_lex (Spread* spread, Cell* cuC)
 
             case token_kind_function:
                 token.kind = get_function_kind(cuC->fx_txt + i, len, &i);
-                (token.kind) ? printf("function of: %s\n",  fxs[token.kind - 2]) : printf("uknown function\n");
+                (token.kind) ? fprintf(stderr, "function of: %s\n",  fxs[token.kind - 2]) : fprintf(stderr, "uknown function\n");
                 break;
 
             default:
                 break;
+        }
+
+        /* If the first token of the list is not a $ token not ? token then
+         * there is not reason to keep getting tokens since no op is gonna
+         * be perform and the cell is gonna be set as plain text.
+         * */
+        if (!expr->nth_token && !DEBUT_LEXER_PERFORMSMTH(token.kind)) {
+            if (token.kind == token_kind_number) {
+                cuC->as.number = token.as.number;
+                cuC->kind = cell_kind_number;
+                return;
+            }
+
+            snprintf(cuC->as.text, DEBUT_CELL_DATA_LENGTH, "%.*s", DEBUT_CELL_DATA_LENGTH - 1, cuC->fx_txt);
+            cuC->kind = cell_kind_text;
+            return;
         }
     }
 }
@@ -90,7 +109,7 @@ static uint16_t get_string_literal (const char* src, uint16_t* pos, const uint16
 
     /* TODO: Add error to stack. */
     if (ch != '"') {
-        puts("no terminated string");
+        fprintf(stderr, "err: no terminated string");
         exit(1);
     }
 
@@ -116,7 +135,7 @@ static void* get_reference (const Spread* spread, const char* src, uint16_t* pos
 
     /* TODO: Add error to stack. */
     if (!colseg) {
-        puts("no column name");
+        fprintf(stderr, "err: no column name");
         exit(1);
     }
 
@@ -127,24 +146,21 @@ static void* get_reference (const Spread* spread, const char* src, uint16_t* pos
 
     /* TODO: Add error to stack. */
     if (!isdigit(src[*pos])) {
-        puts("no row number");
+        fprintf(stderr, "err: no row number");
         exit(1);
     }
 
     Row = atoi(src + *pos);
     while (isdigit(src[*pos])) *pos += 1;
 
-    /* TODO: Add error to stack.
-     * @note: not available while testing:
-     * if (Row >= spread->winf.nRows || Col >= spread->winf.nCols) {
-     * puts("cell outta bounds");
-     * exit(1);
-     * }
-     * */
+    /* TODO: Add error to stack. */
+     if (Row >= spread->winf.nRows || Col >= spread->winf.nCols) {
+         fprintf(stderr, "err: cell outta bounds");
+         exit(1);
+     }
 
-    /* @note: not available while testing: &spread->cells[Row * spread->winf.nCols + Col]; */
-    printf("reference: (%d, %d)\n", Row, Col);
-    return NULL; 
+    fprintf(stderr, "reference: (%d, %d)\n", Row, Col);
+    return &spread->cells[Row * spread->winf.nCols + Col];
 }
 
 typedef struct MathFxs {
@@ -180,17 +196,3 @@ static TokenKind get_function_kind (const char* src, const uint16_t maxlen, uint
 
     return token_kind_unknown;
 }
-
-#define TEXT "&A4 34 4454 \"dwehfwkhfoiewh\" &AAAAA88 @Sin @Cos @Pi @E 33 @ATan @sdwre 24.343 3.4e3"
-
-int main ()
-{
-    Cell c = {0};
-    for (uint16_t i = 0; i < strlen(TEXT); i++) {
-        c.fx_txt[c.fxch++] = TEXT[i];
-    }
-
-    lexer_lex(NULL, &c);
-    return 0;
-}
-

@@ -2,7 +2,7 @@ objs = main.o lexer.o
 flags = -Wall -Wextra -Wpedantic
 
 debut: $(objs)
-	gcc -o debut $(objs) -lncurses
+	gcc -o debut -g $(objs) -lncurses
 
 %.o: %.c
 	gcc -c $(flags) $^

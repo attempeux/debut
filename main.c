@@ -1,4 +1,8 @@
-#include "debut.h"
+/* Take a look to:
+ * imaxdiv
+ * remainder
+ * */
+#include "lexer.h"
 #include <ncurses.h>
 
 /* There are five rows that are not being used:
@@ -15,6 +19,7 @@
 #define DEBUT_MAIN_MAX_COLUMNS  650
 
 #define DEBUT_MAIN_CELL_WIDTH           10
+#define DEBUT_MAIN_CELL_PRINT_WIDTH     9
 #define DEBUT_MAIN_IS_ENTER(a)          ((a == KEY_ENTER) || (a == '\r') || (a == '\n'))
 #define DEBUT_MAIN_IS_BCKSPC(a)         ((a == KEY_BACKSPACE) || (a == '\b') || (a == 127))
 #define DEBUT_MAIN_IS_ARROW_KEY(a)      ((a == KEY_UP) || (a == KEY_DOWN) || (a == KEY_LEFT) || (a == KEY_RIGHT))
@@ -33,7 +38,7 @@ static void update_cells_capacity (Spread*);
 
 static Cell* is_it_within_the_bounds (const Spread*, WindInfo*, const uint32_t);
 
-int _main (void)
+int main (void)
 {
     Spread spread = {0};
     init_window();
@@ -70,7 +75,7 @@ static void refresh_labels (WindInfo* winf)
 {
     clear();
     getmaxyx(curscr, winf->maxy, winf->maxx);
-    mvprintw(0, 0, "A0 (E): %*c", winf->maxx - 8, ' ');
+    mvprintw(0, 0, "A0: %*c", winf->maxx - 4, ' ');
     mvprintw(1, 0, "%*c", winf->maxx, ' ');
     mvprintw(2, 0, "%*c", winf->maxx, ' ');
     mvprintw(winf->maxy - 1, 0, "!ERRS: %*c", winf->maxx - 7, ' ');
@@ -136,36 +141,48 @@ static void get_column_name (char* name, const uint16_t a)
 
 static void start (Spread* spread)
 {
-    move_cursor_to_current_cell(&spread->winf);
+    WindInfo *cuWinf = &spread->winf;
+    move_cursor_to_current_cell(cuWinf);
     keypad(stdscr, TRUE);
     curs_set(2);
 
     update_cells_capacity(spread);
-
     Cell* cuC = &spread->cells[0];
-    uint32_t keypressed;
+
+    /* Ba4pcc: stands for bytes available for printing cell content. */
+    uint32_t Ba4pcc = cuWinf->maxx - 4, keypressed;
 
     while ((keypressed = wgetch(stdscr)) != KEY_F(1)) {
+
         if (keypressed == KEY_RESIZE) {
-            refresh_labels(&spread->winf);
-            move_cursor_to_current_cell(&spread->winf);
+            refresh_labels(cuWinf);
+            move_cursor_to_current_cell(cuWinf);
             update_cells_capacity(spread);
+
+            Ba4pcc = cuWinf->maxx - 4;
+            cuC = is_it_within_the_bounds(spread, cuWinf, 0);
+            continue;
         }
+
         else if (DEBUT_MAIN_IS_ENTER(keypressed)) {
-            fprintf(stderr, "content: (%d, %d): %s\n", spread->winf.cur_row, spread->winf.cur_col, cuC->fx_txt);
-        }
+            fprintf(stderr, "content: (%d, %d): %s\n", cuWinf->cur_row, cuWinf->cur_col, cuC->fx_txt);
+            lexer_lex(spread, cuC);
+        }   
+
         else if (DEBUT_MAIN_IS_BCKSPC(keypressed) && cuC->fxch) {
             cuC->fx_txt[--cuC->fxch] = 0;
         }
+
         else if (isprint(keypressed) && cuC->fxch < DEBUT_FORMULA_LENGTH) {
             cuC->fx_txt[cuC->fxch++] = keypressed;
         }
+
         else if (DEBUT_MAIN_IS_ARROW_KEY(keypressed)) {
-            cuC = is_it_within_the_bounds(spread, &spread->winf, keypressed);
+            cuC = is_it_within_the_bounds(spread, cuWinf, keypressed);
         }
 
-        mvprintw(1, 0, "%-*.*s", spread->winf.maxx, spread->winf.maxx, cuC->fx_txt);
-        move_cursor_to_current_cell(&spread->winf);
+        mvprintw(1, 0, "%-*.*s", cuWinf->maxx, cuWinf->maxx, cuC->fx_txt);
+        move_cursor_to_current_cell(cuWinf);
     }
 }
 
@@ -176,24 +193,32 @@ static void move_cursor_to_current_cell (const WindInfo* winf)
 
 static void update_cells_capacity (Spread* spread)
 {
-    static uint32_t prevnCells = 0;
-    uint32_t currnCells = spread->winf.nRows * spread->winf.nCols;
+    static const size_t cellsz = sizeof(Cell);
+    static size_t cuNcells = 0;
 
-    if (currnCells < prevnCells)
-        return;
+    size_t newNcells = spread->winf.nRows * spread->winf.nCols;
+
+    if (!spread->cells && !cuNcells) {
+        spread->cells = (Cell*) calloc(newNcells, cellsz);
+    }
+    else if (newNcells > cuNcells) {
+        spread->cells = (Cell*) realloc(spread->cells, newNcells * cellsz);
+        memset(&spread->cells[cuNcells], 0, (newNcells - cuNcells) * cellsz);
+    }
 
     if (!spread->cells) {
-        spread->cells = (Cell*) calloc(currnCells, sizeof(Cell));
-    }
-
-    else if (!(spread->cells = (Cell*) realloc(spread->cells, currnCells))) {
         endwin();
-        fprintf(stderr, "debut: error: no memory enough to hold %d cells :( use excel instead...\n", currnCells);
+        fprintf(stderr, "debut: error: no memory enough to hold %ld cells :( use excel instead...\n", newNcells);
         exit(EXIT_FAILURE);
     }
-    prevnCells = currnCells;
+
+    cuNcells = (newNcells > cuNcells) ? newNcells : cuNcells;
 }
 
+/* Any time the user tries to move the program gotta check if the desired new position is
+ * within the current bounds of the table; once it has been checked and updated the new
+ * cell is returned.
+ * */
 static Cell* is_it_within_the_bounds (const Spread* spread, WindInfo* winf, const uint32_t kp)
 {
     const uint16_t rowbound = winf->nRows - 1;
@@ -206,8 +231,16 @@ static Cell* is_it_within_the_bounds (const Spread* spread, WindInfo* winf, cons
         case KEY_RIGHT: winf->cur_col += (winf->cur_col < colbound) ? 1 : 0; break;
     }
 
-    return &spread->cells[winf->cur_row * winf->nCols + winf->cur_col];
+    const size_t cellat = ((winf->cur_row * winf->nCols) + winf->cur_col);
+
+    /* If the new cell position is greater than the numbers of cells available it means
+     * such cell is no longer at sight becuase there was a resize, therefore to not lose
+     * the focus and avoid bugs the positon is reset to zero.
+     * */
+    if (cellat > (winf->nRows * winf->nCols)) {
+        winf->cur_row = 0;
+        winf->cur_col = 0;
+    }
+
+    return &spread->cells[cellat];
 }
-
-
-

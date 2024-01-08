@@ -3,11 +3,15 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <assert.h>
+
 #define DEBUT_FORMULA_LENGTH    512
 #define DEBUT_CELL_DATA_LENGTH  64
+#define DEBUT_MAX_TOKENS        32
 
 typedef enum CellKind {
     cell_kind_error  = 0,
@@ -59,8 +63,15 @@ typedef struct Token {
     TokenKind kind;
 } Token;
 
+typedef struct Expression {
+    Token tokens[DEBUT_MAX_TOKENS];
+    uint16_t nth_token;
+} Expression;
+
 typedef struct Cell {
+    Expression expression;
     char fx_txt[DEBUT_FORMULA_LENGTH];
+
     union {
         char text[DEBUT_CELL_DATA_LENGTH];
         long double number;
