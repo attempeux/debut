@@ -37,6 +37,9 @@ static void move_cursor_to_current_cell (const WindInfo*);
 static void update_cells_capacity (Spread*);
 
 static Cell* is_it_within_the_bounds (const Spread*, WindInfo*, const uint32_t);
+static void display_current_cell_name (const WindInfo*);
+
+static void display_content_on (const Cell*, const uint16_t, const bool);
 
 int main (void)
 {
@@ -103,10 +106,10 @@ static void refresh_grid (WindInfo* winf)
         exit(EXIT_FAILURE);
     }
 
-    char col[2];
+    char col[3] = {0};
     for (i = 0; i < winf->nCols; i++) {
         get_column_name(col, i);
-        printw("    %c%c    ", col[0], (col[1]) ? col[1] : ' ');
+        printw("    %-2s    ", col);
     }
 }
 
@@ -149,17 +152,15 @@ static void start (Spread* spread)
     update_cells_capacity(spread);
     Cell* cuC = &spread->cells[0];
 
-    /* Ba4pcc: stands for bytes available for printing cell content. */
-    uint32_t Ba4pcc = cuWinf->maxx - 5, keypressed;
-
+    uint32_t keypressed;
     while ((keypressed = wgetch(stdscr)) != KEY_F(1)) {
 
         if (keypressed == KEY_RESIZE) {
             refresh_labels(cuWinf);
+
             move_cursor_to_current_cell(cuWinf);
             update_cells_capacity(spread);
 
-            Ba4pcc = cuWinf->maxx - 5;
             cuC = is_it_within_the_bounds(spread, cuWinf, 0);
             continue;
         }
@@ -167,6 +168,8 @@ static void start (Spread* spread)
         else if (DEBUT_MAIN_IS_ENTER(keypressed)) {
             fprintf(stderr, "content: (%d, %d): %s\n", cuWinf->cur_row, cuWinf->cur_col, cuC->fx_txt);
             lexer_lex(spread, cuC);
+            display_content_on(cuC, DEBUT_MAIN_CELL_PRINT_WIDTH, true);
+            display_content_on(cuC, DEBUT_CELL_DATA_LENGTH, false);
         }   
 
         else if (DEBUT_MAIN_IS_BCKSPC(keypressed) && cuC->fxch) {
@@ -179,10 +182,8 @@ static void start (Spread* spread)
 
         else if (DEBUT_MAIN_IS_ARROW_KEY(keypressed)) {
             cuC = is_it_within_the_bounds(spread, cuWinf, keypressed);
-
-            char columname[3];
-            get_column_name(columname, cuWinf->cur_col);
-            mvprintw(0, 0, "%s%d: ", columname, cuWinf->cur_row);
+            display_current_cell_name(cuWinf);
+            display_content_on(cuC, DEBUT_CELL_DATA_LENGTH, false);
         }
 
         mvprintw(1, 0, "%-*.*s", cuWinf->maxx, cuWinf->maxx, cuC->fx_txt);
@@ -249,4 +250,19 @@ static Cell* is_it_within_the_bounds (const Spread* spread, WindInfo* winf, cons
     return &spread->cells[cellat];
 }
 
+static void display_current_cell_name (const WindInfo* winf)
+{
+    char columname[3] = {0};
+    get_column_name(columname, winf->cur_col);
+    mvprintw(0, 0, "%s%d: ", columname, winf->cur_row);
+}
 
+static void display_content_on (const Cell* cuC, const uint16_t width, const bool oncell)
+{
+    if (!oncell) { move(0, 4); }
+    else { attron(COLOR_PAIR(2)); }
+
+    if (cuC->kind == cell_kind_number) printw("%-*.*LG", width, width - 5, cuC->as.number);
+    else printw("%-*.*s", width, width, cuC->as.text);
+    attron(COLOR_PAIR(1));
+}
