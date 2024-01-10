@@ -153,6 +153,7 @@ static void start_to_typing (Spreadsheet* sp)
     while ((key = getch()) != KEY_F(1)) {
         if (DEBUT_MOVE_KEY(key)) {
             check_bounds(win_inf, key);
+            print_cell_name(win_inf, sp->flnamesz);
             move_cursor_to_cur_cell(win_inf);
         }
     }
