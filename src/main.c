@@ -1,20 +1,12 @@
-#include "debut.h"
+#include "lexer.h"
 #include <ncurses.h>
-#include <ctype.h>
 
 #define DEBUT_MOVE_KEY(a)       ((a == 'j') || (a == 'k') || (a == 'h') || (a == 'l'))
 #define DEBUT_BCKSPC_KEY(a)     ((a == '\b') || (a == KEY_BACKSPACE))
 #define DEBUT_ENTER_KEY(a)      ((a == '\n') || (a == '\r') || (a == KEY_ENTER))
 #define DEBUT_MIN(a, b)         ((a) < (b) ? (a) : (b))
 
-/* Since we do not wanna make the next excel but just a spreadsheet engine
- * for fun we do not need to much cells. 77 is the number of columns that
- * takes to reach the 'BZ' column starting from 0 index.
- * */
-#define DEBUT_MAX_ROWS      150
-#define DEBUT_MAX_COLS      77
-#define DEBUT_TOTAL_CELLS   DEBUT_MAX_ROWS * DEBUT_MAX_COLS
-#define DEBUT_CELL_WIDTH    10
+
 
 #define DEBUT_UNUSED_WROWS  3
 #define DEBUT_UNUSED_WCOLS  4
@@ -35,6 +27,7 @@ static void check_bounds (WindowInfo*, const uint32_t);
 static void check_if_gotta_upd_grid (WindowInfo*, uint16_t*, const uint16_t, uint16_t*);
 
 static bool getting_fx (Cell*, const uint32_t);
+static void eval_cell_and_show (Cell*, const Spreadsheet*);
 
 int main (void)
 {
@@ -188,6 +181,7 @@ static void start_to_typing (Spreadsheet* sp)
             if (insert_mode)
                 mvprintw(1, 4, "%-*.*s", ths_cell->fx_ntch, bytes_available_for_fx, ths_cell->formula_txt);
             else {
+                eval_cell_and_show(ths_cell, sp);
                 mvprintw(1, 0, "%*c", win_inf->win_columns, ' ');
                 (void) move_cursor_to_cur_cell(sp, win_inf);
             }
@@ -311,4 +305,15 @@ static bool getting_fx (Cell* ths_cell, const uint32_t key)
 
     return false;
 }
+
+static void eval_cell_and_show (Cell* ths_cell, const Spreadsheet* sp)
+{
+    lexer_lexer(sp, ths_cell);
+}
+
+
+
+
+
+
 
