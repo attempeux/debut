@@ -1,9 +1,11 @@
 #include "debut.h"
-#include <stdio.h>
-#include <string.h>
 #include <ncurses.h>
+#include <ctype.h>
 
 #define DEBUT_MOVE_KEY(a)       ((a == 'j') || (a == 'k') || (a == 'h') || (a == 'l'))
+#define DEBUT_BCKSPC_KEY(a)     ((a == '\b') || (a == KEY_BACKSPACE))
+#define DEBUT_ENTER_KEY(a)      ((a == '\n') || (a == '\r') || (a == KEY_ENTER))
+#define DEBUT_MIN(a, b)         ((a) < (b) ? (a) : (b))
 
 /* Since we do not wanna make the next excel but just a spreadsheet engine
  * for fun we do not need to much cells. 77 is the number of columns that
@@ -11,6 +13,7 @@
  * */
 #define DEBUT_MAX_ROWS      150
 #define DEBUT_MAX_COLS      77
+#define DEBUT_TOTAL_CELLS   DEBUT_MAX_ROWS * DEBUT_MAX_COLS
 #define DEBUT_CELL_WIDTH    10
 
 #define DEBUT_UNUSED_WROWS  3
@@ -23,13 +26,15 @@ static void update_filename (const char*, size_t*);
 static void print_cell_name (const WindowInfo*, const size_t);
 
 static void get_column_name (char*, const uint16_t);
-static void update_grid (WindowInfo*);
+static void update_grid (WindowInfo*, const bool, const bool);
 
 static void start_to_typing (Spreadsheet*);
-static void move_cursor_to_cur_cell (const WindowInfo*);
+static Cell* move_cursor_to_cur_cell (const Spreadsheet*, const WindowInfo*);
 
 static void check_bounds (WindowInfo*, const uint32_t);
 static void check_if_gotta_upd_grid (WindowInfo*, uint16_t*, const uint16_t, uint16_t*);
+
+static bool getting_fx (Cell*, const uint32_t);
 
 int main (void)
 {
@@ -40,7 +45,14 @@ int main (void)
 
     sp.win_info.displayrows = (sp.win_info.win_rows - DEBUT_UNUSED_WROWS);
     sp.win_info.displaycols = (sp.win_info.win_columns - DEBUT_UNUSED_WCOLS) / DEBUT_CELL_WIDTH;
-    update_grid(&sp.win_info);
+    update_grid(&sp.win_info, true, true);
+
+    sp.cells = (Cell*) calloc(DEBUT_TOTAL_CELLS, sizeof(Cell)); // maybe calloc no needed.
+    if (!sp.cells) {
+        endwin();
+        fprintf(stderr, "debut: err: cannot hold %d cells; aborting process.\n", DEBUT_TOTAL_CELLS);
+        exit(1);
+    }
 
     start_to_typing(&sp);
     getch();
@@ -104,7 +116,7 @@ static void print_cell_name (const WindowInfo* win_inf, const size_t flnamesz)
 }
 
 /* Twenty-six is the number of letters in the American alphabet,
- * this function calculates the name of the cell with column 'a'.
+ * this function calculates the name of the cell in the column 'a'.
  * */
 static void get_column_name (char* name, const uint16_t a)
 {
@@ -122,22 +134,28 @@ static void get_column_name (char* name, const uint16_t a)
  * left to be used then the program gotta update the grid to show the coordinates of
  * the current set of cells.
  * */
-static void update_grid (WindowInfo* win_inf)
+static void update_grid (WindowInfo* win_inf, const bool _rows, const bool _cols)
 {
-    move(DEBUT_UNUSED_WROWS - 1, DEBUT_UNUSED_WCOLS);
-    uint16_t hilfsvar = win_inf->col_offset + win_inf->displaycols, i;
+    uint16_t hilfsvar, i;
 
-    for (i = win_inf->col_offset; i < hilfsvar; i++) {
-        char name[3] = {0};
-        get_column_name(name, i);
-        printw("    %2s    ", name);
+    if (_cols) {
+        move(DEBUT_UNUSED_WROWS - 1, DEBUT_UNUSED_WCOLS);
+        hilfsvar = win_inf->col_offset + win_inf->displaycols;
+
+        for (i = win_inf->col_offset; i < hilfsvar; i++) {
+            char name[3] = {0};
+            get_column_name(name, i);
+            printw("    %2s    ", name);
+        }
     }
 
-    uint16_t w_row_pos = DEBUT_UNUSED_WROWS;
-    hilfsvar = win_inf->row_offset + win_inf->displayrows;
+    if (_rows) {
+        uint16_t w_row_pos = DEBUT_UNUSED_WROWS;
+        hilfsvar = win_inf->row_offset + win_inf->displayrows;
 
-    for (i = win_inf->row_offset; i < hilfsvar; i++)
-        mvprintw(w_row_pos++, 0, "%-*d", DEBUT_UNUSED_WCOLS, i);
+        for (i = win_inf->row_offset; i < hilfsvar; i++)
+            mvprintw(w_row_pos++, 0, "%-*d", DEBUT_UNUSED_WCOLS, i);
+    }
 }
 
 /* Starts the process to let the user interact with the spreadsheet.
@@ -145,25 +163,45 @@ static void update_grid (WindowInfo* win_inf)
 static void start_to_typing (Spreadsheet* sp)
 {
     WindowInfo* win_inf = &sp->win_info;
-    move_cursor_to_cur_cell(win_inf);
+    Cell* ths_cell = move_cursor_to_cur_cell(sp, win_inf);
 
     uint32_t key;
     keypad(stdscr, TRUE);
 
+    const uint32_t bytes_available_for_fx = DEBUT_MIN(DEBUT_CELL_TEXT_CAP, (win_inf->win_columns - 4));
+    bool insert_mode = false;
+
     while ((key = getch()) != KEY_F(1)) {
-        if (DEBUT_MOVE_KEY(key)) {
+        if (DEBUT_MOVE_KEY(key) && !insert_mode) {
             check_bounds(win_inf, key);
             print_cell_name(win_inf, sp->flnamesz);
-            move_cursor_to_cur_cell(win_inf);
+            ths_cell = move_cursor_to_cur_cell(sp, win_inf);
+        }
+
+        else if (key == 'i' && !insert_mode) {
+            insert_mode = true;
+            mvprintw(1, 0, "fx: %-*.*s", ths_cell->fx_ntch, bytes_available_for_fx, ths_cell->formula_txt);
+        }
+
+        else if (insert_mode) {
+            insert_mode = getting_fx(ths_cell, key);
+            if (insert_mode)
+                mvprintw(1, 4, "%-*.*s", ths_cell->fx_ntch, bytes_available_for_fx, ths_cell->formula_txt);
+            else {
+                mvprintw(1, 0, "%*c", win_inf->win_columns, ' ');
+                (void) move_cursor_to_cur_cell(sp, win_inf);
+            }
         }
     }
 }
 
-/* Sets the cursor to the current position within the grid.
+/* Sets the cursor to the current position within the grid and returns
+ * the cell at such position.
  * */
-static void move_cursor_to_cur_cell (const WindowInfo* win_inf)
+static Cell* move_cursor_to_cur_cell (const Spreadsheet* sp, const WindowInfo* win_inf)
 {
     move(DEBUT_UNUSED_WROWS + win_inf->rel_row_pos, DEBUT_UNUSED_WCOLS + win_inf->rel_col_pos * DEBUT_CELL_WIDTH);
+    return &sp->cells[win_inf->cur_row * DEBUT_MAX_COLS + win_inf->cur_col];
 }
 
 /* This functions checks if the position where the user wanna go is within the bounds
@@ -179,6 +217,8 @@ static void move_cursor_to_cur_cell (const WindowInfo* win_inf)
  *
  * The relative position is useful to know whenever the program have to refresh
  * the layout.
+ *
+ * note: there must be a better way to write this but i haven't found it yet.
  * */
 static void check_bounds (WindowInfo* win_inf, const uint32_t key)
 {
@@ -216,8 +256,7 @@ static void check_bounds (WindowInfo* win_inf, const uint32_t key)
             break;
     }
 
-    return;
-    boundissue: beep();
+    return; boundissue: beep();
 }
 
 /* Detects if it is need update the grid whichever row one or column one, it also modifies relative
@@ -241,6 +280,35 @@ static void check_bounds (WindowInfo* win_inf, const uint32_t key)
  * */
 static void check_if_gotta_upd_grid (WindowInfo* win_inf, uint16_t *rel, const uint16_t max, uint16_t* offset)
 {
-    if (!*rel && *offset) { *rel += 1; *offset -= 1; update_grid(win_inf); }
-    else if (*rel == max) { *rel -= 1; *offset += 1; update_grid(win_inf); }
+    const bool forrow = &win_inf->rel_row_pos == rel;
+
+    if (!*rel && *offset) { *rel += 1; *offset -= 1; update_grid(win_inf, forrow, !forrow); }
+    else if (*rel == max) { *rel -= 1; *offset += 1; update_grid(win_inf, forrow, !forrow); }
 }
+
+/* Gets the characters typed by the user as he/she builds the formula
+ * for the current cell.
+ * */
+static bool getting_fx (Cell* ths_cell, const uint32_t key)
+{
+    if (DEBUT_ENTER_KEY(key))
+        return false;
+
+    if (isprint(key) && ths_cell->fx_ntch < DEBUT_CELL_TEXT_CAP) {
+        ths_cell->formula_txt[ths_cell->fx_ntch++] = key;
+        return true;
+    }
+
+    if (DEBUT_BCKSPC_KEY(key) && ths_cell->fx_ntch) {
+        ths_cell->formula_txt[--ths_cell->fx_ntch] = 0;
+        return true;
+    }
+
+    if ((ths_cell->fx_ntch == DEBUT_CELL_TEXT_CAP) || !ths_cell->fx_ntch) {
+        beep();
+        return true;
+    }
+
+    return false;
+}
+
