@@ -1,4 +1,4 @@
-objs = main.o lexer.o
+objs = main.o
 flags = -Wall -Wextra -Wpedantic
 
 debut: $(objs)

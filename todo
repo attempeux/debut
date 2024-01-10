@@ -1,2 +1,2 @@
-[^] Display content of cell on the cell itself and the first label.
-[ ] When the window get resized set all contents again.
+[ ] Draw the spreadsheet.
+[ ] Move around and load cells.
