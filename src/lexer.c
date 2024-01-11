@@ -6,6 +6,8 @@ static void set_token_as_number (const char*, uint16_t*, long double*);
 static void set_token_as_string (const char*, uint16_t*, Token*);
 static void set_token_as_reference (const Spreadsheet*, const char*, uint16_t*, Cell*);
 
+static TokenKind kind_of_built_in_fx (const char*, uint16_t*, const uint16_t);
+
 void lexer_lexer (const Spreadsheet* sp, Cell* ths_cell)
 {
     const uint16_t nchs = ths_cell->fx_ntch;
@@ -17,6 +19,7 @@ void lexer_lexer (const Spreadsheet* sp, Cell* ths_cell)
 
     for (uint16_t i = 0; i < nchs; i++) {
         const char a = ths_cell->formula_txt[i];
+        if (isspace(a)) continue;
         Token token = { .kind = find_out_token_kind(a) };
 
         switch (token.kind) {
@@ -24,13 +27,22 @@ void lexer_lexer (const Spreadsheet* sp, Cell* ths_cell)
                 set_token_as_number(ths_cell->formula_txt, &i, &token.as.number);
                 fprintf(stdout, "%.1Lf\n", token.as.number);
                 break;
+
             case tok_kind_string:
                 set_token_as_string(ths_cell->formula_txt, &i, &token);
                 fprintf(stdout, "%.*s\n", token.len_as_str, token.as.string);
                 break;
+
             case tok_kind_reference:
                 set_token_as_reference(sp, ths_cell->formula_txt, &i, token.as.ref);
+                break;
+
+            case tok_kind_build_in_func:
+                token.kind = kind_of_built_in_fx(ths_cell->formula_txt + i, &i, nchs - i);
+                break;
+
             default:
+                printf("%c\n", a);
                 break;
         }
     }
@@ -109,7 +121,7 @@ static void set_token_as_reference (const Spreadsheet* sp, const char* src, uint
     const uint16_t pos = (uint16_t) row_help * column;
 
     if (pos >= DEBUT_TOTAL_CELLS) { // TODO: Add error.
-        fprintf(stdout, "bounds!\n");
+        fprintf(stdout, "bounds!!\n");
         exit(0);
     }
 
@@ -117,6 +129,37 @@ static void set_token_as_reference (const Spreadsheet* sp, const char* src, uint
     //as_ref = &sp->cells[pos];
 }
 
+typedef struct BuiltInFx {
+    const char* name;
+    const uint16_t len;
+    const TokenKind kind;
+} BuiltInFx;
+
+static TokenKind kind_of_built_in_fx (const char* src, uint16_t* _i, const uint16_t len)
+{
+    static const uint16_t nbuiltin = 8;
+    static const BuiltInFx fxs[] = {
+        {"@asin", 5, tok_kind_asin_fx },
+        {"@acos", 5, tok_kind_acos_fx },
+        {"@atan", 5, tok_kind_atan_fx },
+        {"@sqrt", 5, tok_kind_sqrt_fx },
+        {"@sin",  4, tok_kind_sin_fx  },
+        {"@cos",  4, tok_kind_cos_fx  },
+        {"@pi",   3, tok_kind_pi_const},
+        {"@e",    2, tok_kind_e_const },
+    };
+
+    for (uint16_t i = 0; i < nbuiltin; i++) {
+        const BuiltInFx* bfx = &fxs[i];
+        if (len >= bfx->len && !strncmp(bfx->name, src, bfx->len)) {
+            fprintf(stdout, "%s\n", bfx->name);
+            *_i += bfx->len - 1;
+            return bfx->kind;
+        }
+    }
+
+    return tok_kind_unknown;
+}
 
 int main (int argc, char** argv)
 {

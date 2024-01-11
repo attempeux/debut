@@ -1,6 +1,6 @@
 #! /usr/bin/env bats
 
-# Number cases ---------------------------------------------------------
+# Number cases ----------------------------------------------------------------
 # Note: This lexer does not know -43 is a number since - is a token by itself
 #       and later on in the program it will make sense to the parser.
 @test "testing lexer (1) [number]" {
@@ -28,7 +28,7 @@
     [ "$run" = "10000000.0" ]
 }
 
-# String cases ---------------------------------------------------------
+# String cases ----------------------------------------------------------------
 # Note: The lexer only accpets 32 bytes per string, if the sting is longer it will
 #       skip the bytes beyond such limit.
 @test "testing lexer (1) [string]" {
@@ -56,7 +56,7 @@
     [ "$run" = "C'est ca!, That's it!, Eso es!" ]
 }
 
-# References address cases ------------------------------------------------
+# References address cases ----------------------------------------------------
 # Note: Since the reference token is not a literal value but a pointer to a cell
 #       what the tester does is to check the row and column positions are what they are supposed to be.
 @test "testing lexer (1) [reference]" {
@@ -84,7 +84,7 @@
     [ "$run" = "(77, 111)" ]
 }
 
-# Literal combined cases -------------------------------------------------------
+# Literal combined cases ------------------------------------------------------
 @test "testing lexer (1) [combined]" {
     run="$(./debut "1 1 \"Hi!\" \"Hola!\" \"Bonsoir!\" &B1")"
     expected=$(echo -e "1.0\n1.0\nHi!\nHola!\nBonsoir!\n(1, 1)")
@@ -114,3 +114,36 @@
     expected=$(echo -e "Lexing is working\n10.0\noutta\n10.0")
     [[ "$run" == "$expected" ]]
 }
+
+# Formulas cases --------------------------------------------------------------
+@test "testing lexer (1) [formulas]" {
+    run="$(./debut "@sin(@pi / 2)")"
+    expected=$(echo -e "@sin\n(\n@pi\n/\n2.0\n)")
+    [[ "$run" == "$expected" ]]
+}
+
+@test "testing lexer (2) [formulas]" {
+    run="$(./debut "@sin(@pi) / @cos(@pi)")"
+    expected=$(echo -e "@sin\n(\n@pi\n)\n/\n@cos\n(\n@pi\n)")
+    [[ "$run" == "$expected" ]]
+}
+
+@test "testing lexer (3) [formulas]" {
+    run="$(./debut "@sqrt(@acos(0))")"
+    expected=$(echo -e "@sqrt\n(\n@acos\n(\n0.0\n)\n)")
+    [[ "$run" == "$expected" ]]
+}
+
+@test "testing lexer (4) [formulas]" {
+    run="$(./debut "@sin(2 * @pi) * @sin(2 * @pi) + @cos(2 * @pi) * @cos(2 * @pi)")"
+    expected=$(echo -e "@sin\n(\n2.0\n*\n@pi\n)\n*\n@sin\n(\n2.0\n*\n@pi\n)\n+\n@cos\n(\n2.0\n*\n@pi\n)\n*\n@cos\n(\n2.0\n*\n@pi\n)")
+    [[ "$run" == "$expected" ]]
+}
+
+@test "testing lexer (5) [formulas]" {
+    run="$(./debut "@sqrt @sin @asin @cos @acos @atan @pi @e")"
+    expected=$(echo -e "@sqrt\n@sin\n@asin\n@cos\n@acos\n@atan\n@pi\n@e")
+    [[ "$run" == "$expected" ]]
+}
+
+

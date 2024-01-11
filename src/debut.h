@@ -32,7 +32,10 @@ typedef enum TokenKind {
     tok_kind_asin_fx       = 4,
     tok_kind_acos_fx       = 5,
     tok_kind_atan_fx       = 6,
-    tok_kind_sqrt          = 7,
+    tok_kind_sqrt_fx       = 7,
+    tok_kind_pi_const      = 8,
+    tok_kind_e_const       = 9,
+
     tok_kind_string        = '"',
     tok_kind_reference     = '&',
     tok_kind_lf_par        = '(',
