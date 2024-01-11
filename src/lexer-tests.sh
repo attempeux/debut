@@ -146,4 +146,11 @@
     [[ "$run" == "$expected" ]]
 }
 
+# Unknown token kind cases ----------------------------------------------------
+@test "testing lexer (1) [unknown-cases]" {
+    run="$(./debut "unknasderujkpoaqwertjkld@some_fx")"
+    expected="$(yes "unkn" | head -n 31)"
+    [[ "$run" == "$expected" ]]
+}
+
 

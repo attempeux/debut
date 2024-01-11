@@ -42,9 +42,13 @@ void lexer_lexer (const Spreadsheet* sp, Cell* ths_cell)
                 break;
 
             default:
-                printf("%c\n", a);
+                if (token.kind == tok_kind_unknown)
+                    printf("unkn\n");
+                else
+                    printf("%c\n", a);
                 break;
         }
+
     }
 }
 
