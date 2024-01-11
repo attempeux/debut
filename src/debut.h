@@ -7,15 +7,15 @@
 #include <stdbool.h>
 
 /* Since we do not wanna make the next excel but just a spreadsheet engine
- * for fun we do not need to much cells. 77 is the number of columns that
+ * for fun we do not need to much cells. 78 is the number of columns that
  * takes to reach the 'BZ' column starting from 0 index.
  * */
 #define DEBUT_MAX_ROWS          150
-#define DEBUT_MAX_COLS          77
+#define DEBUT_MAX_COLS          78
 #define DEBUT_TOTAL_CELLS       DEBUT_MAX_ROWS * DEBUT_MAX_COLS
 #define DEBUT_CELL_WIDTH        10
 #define DEBUT_CELL_TEXT_CAP     64
-#define DEBUT_TOKEN_TEXT_CAP    16
+#define DEBUT_TOKEN_TEXT_CAP    32
 
 typedef enum CellKind {
     cell_kind_error  = 0,

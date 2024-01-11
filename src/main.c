@@ -5,11 +5,8 @@
 #define DEBUT_BCKSPC_KEY(a)     ((a == '\b') || (a == KEY_BACKSPACE))
 #define DEBUT_ENTER_KEY(a)      ((a == '\n') || (a == '\r') || (a == KEY_ENTER))
 #define DEBUT_MIN(a, b)         ((a) < (b) ? (a) : (b))
-
-
-
-#define DEBUT_UNUSED_WROWS  3
-#define DEBUT_UNUSED_WCOLS  4
+#define DEBUT_UNUSED_WROWS      3
+#define DEBUT_UNUSED_WCOLS      4
 
 static void init_debut (void);
 static void init_labels (Spreadsheet*);
@@ -29,7 +26,7 @@ static void check_if_gotta_upd_grid (WindowInfo*, uint16_t*, const uint16_t, uin
 static bool getting_fx (Cell*, const uint32_t);
 static void eval_cell_and_show (Cell*, const Spreadsheet*);
 
-int main (void)
+int _main (void)
 {
     Spreadsheet sp = {0};
 
@@ -202,12 +199,12 @@ static Cell* move_cursor_to_cur_cell (const Spreadsheet* sp, const WindowInfo* w
  * and sets the values of the real cursor position and the relative ones.
  *
  * The real cursor position is the position within the whole table it means that:
- *      -1 < win_inf->cur_col < DEBUT_MAX_COLS + 1
- *      -1 < win_inf->cur_row < DEBUT_MAX_ROWS + 1
+ *      -1 < win_inf->cur_col < DEBUT_MAX_COLS
+ *      -1 < win_inf->cur_row < DEBUT_MAX_ROWS
  *
  * And the relative one is where the cursor is but within the current grid:
- *      -1 < win_inf->rel_col_pos < winf->displaycols + 1
- *      -1 < win_inf->rel_row_pos < winf->displayrows + 1
+ *      -1 < win_inf->rel_col_pos < winf->displaycols
+ *      -1 < win_inf->rel_row_pos < winf->displayrows
  *
  * The relative position is useful to know whenever the program have to refresh
  * the layout.
@@ -226,7 +223,7 @@ static void check_bounds (WindowInfo* win_inf, const uint32_t key)
             break;
 
         case 'l':
-            if (win_inf->cur_col == DEBUT_MAX_COLS) goto boundissue;
+            if (win_inf->cur_col == (DEBUT_MAX_COLS - 1)) goto boundissue;
             win_inf->rel_col_pos += (win_inf->rel_col_pos != win_inf->displaycols) ? 1 : 0;
             win_inf->cur_col++;
 
@@ -242,7 +239,7 @@ static void check_bounds (WindowInfo* win_inf, const uint32_t key)
             break;
 
         case 'j':
-            if (win_inf->cur_row == DEBUT_MAX_ROWS) goto boundissue;
+            if (win_inf->cur_row == (DEBUT_MAX_ROWS - 1)) goto boundissue;
             win_inf->rel_row_pos += (win_inf->rel_row_pos != win_inf->displayrows) ? 1 : 0;
             win_inf->cur_row++;
 
@@ -310,10 +307,4 @@ static void eval_cell_and_show (Cell* ths_cell, const Spreadsheet* sp)
 {
     lexer_lexer(sp, ths_cell);
 }
-
-
-
-
-
-
 
