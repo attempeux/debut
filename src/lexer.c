@@ -20,17 +20,15 @@ void lexer_lexer (const Spreadsheet* sp, Cell* ths_cell)
     for (uint16_t i = 0; i < nchs; i++) {
         const char a = ths_cell->formula_txt[i];
         if (isspace(a)) continue;
-        Token token = { .kind = find_out_token_kind(a) };
 
+        Token token = { .kind = find_out_token_kind(a) };
         switch (token.kind) {
             case tok_kind_number:
                 set_token_as_number(ths_cell->formula_txt, &i, &token.as.number);
-                fprintf(stdout, "%.1Lf\n", token.as.number);
                 break;
 
             case tok_kind_string:
                 set_token_as_string(ths_cell->formula_txt, &i, &token);
-                fprintf(stdout, "%.*s\n", token.len_as_str, token.as.string);
                 break;
 
             case tok_kind_reference:
@@ -42,13 +40,21 @@ void lexer_lexer (const Spreadsheet* sp, Cell* ths_cell)
                 break;
 
             default:
-                if (token.kind == tok_kind_unknown)
-                    printf("unkn\n");
-                else
-                    printf("%c\n", a);
                 break;
         }
 
+#ifdef LEXER_TEST
+        const TokenKind k = token.kind;
+        switch (k) {
+            case tok_kind_number: printf("%.1Lf\n", token.as.number); break;
+            case tok_kind_string: printf("%.*s\n", token.len_as_str, token.as.string); break;
+            case tok_kind_unknown: printf("unkn\n"); break;
+            default:
+                if (((k >= tok_kind_sin_fx) && (k <= tok_kind_e_const)) || (k == tok_kind_reference)) break;
+                printf("%c\n", a);
+                break;
+        }
+#endif
     }
 }
 
@@ -89,7 +95,7 @@ static void set_token_as_string (const char* src, uint16_t* _i, Token* token)
     }
 
     if (*_i >= DEBUT_CELL_TEXT_CAP) {
-        puts("bounds!");
+        puts("big string!");
         exit(0);
     }
 
@@ -114,23 +120,25 @@ static void set_token_as_reference (const Spreadsheet* sp, const char* src, uint
             *_i += 2;
             break;
 
-        default: // TODO: Add error.
-            fprintf(stdout, "bounds!\n");
+        default:
+            puts("no-well-defined-ref");
             exit(0);
             break;
     }
 
-
     set_token_as_number(src, _i, &row_help);
     const uint16_t pos = (uint16_t) row_help * column;
 
-    if (pos >= DEBUT_TOTAL_CELLS) { // TODO: Add error.
-        fprintf(stdout, "bounds!!\n");
+    if (pos >= DEBUT_TOTAL_CELLS) {
+        puts("cell outta bounds");
         exit(0);
     }
 
-    fprintf(stdout, "(%d, %.0Lf)\n", column, row_help);
-    //as_ref = &sp->cells[pos];
+#ifdef LEXER_TEST
+    printf("(%d, %.0Lf)\n", column, row_help);
+#else
+    as_ref = &sp->cells[pos];
+#endif
 }
 
 typedef struct BuiltInFx {
@@ -156,7 +164,11 @@ static TokenKind kind_of_built_in_fx (const char* src, uint16_t* _i, const uint1
     for (uint16_t i = 0; i < nbuiltin; i++) {
         const BuiltInFx* bfx = &fxs[i];
         if (len >= bfx->len && !strncmp(bfx->name, src, bfx->len)) {
-            fprintf(stdout, "%s\n", bfx->name);
+
+#ifdef LEXER_TEST
+            printf("%s\n", bfx->name);
+#endif
+
             *_i += bfx->len - 1;
             return bfx->kind;
         }
@@ -165,6 +177,8 @@ static TokenKind kind_of_built_in_fx (const char* src, uint16_t* _i, const uint1
     return tok_kind_unknown;
 }
 
+
+#ifdef LEXER_TEST 
 int main (int argc, char** argv)
 {
     Cell cell;
@@ -172,6 +186,6 @@ int main (int argc, char** argv)
     cell.fx_ntch = strlen(argv[1]);
 
     lexer_lexer(NULL, &cell);
-
     return 0;
 }
+#endif

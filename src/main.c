@@ -26,7 +26,8 @@ static void check_if_gotta_upd_grid (WindowInfo*, uint16_t*, const uint16_t, uin
 static bool getting_fx (Cell*, const uint32_t);
 static void eval_cell_and_show (Cell*, const Spreadsheet*);
 
-int _main (void)
+#ifndef LEXER_TEST
+int main (void)
 {
     Spreadsheet sp = {0};
 
@@ -307,4 +308,4 @@ static void eval_cell_and_show (Cell* ths_cell, const Spreadsheet* sp)
 {
     lexer_lexer(sp, ths_cell);
 }
-
+#endif
